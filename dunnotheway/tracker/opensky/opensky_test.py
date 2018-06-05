@@ -8,6 +8,11 @@ def main():
     api = OpenSkyApi()
     # retrieve aircraft states
     s = api.get_states()
-
+    flight = None 
+    for state_vector in s.states:
+        if state_vector.callsign.strip() == 'GLO1454':
+            flight = state_vector
+    print(flight)
+    
 if __name__ == '__main__':
     main()    
