@@ -22,3 +22,12 @@ class Flight(Base):
         self.flight_plan = flight_plan
         self.partition_interval = partition_interval
         self.longitude_based = longitude_based
+
+    def __repr__(self):
+        return 'Flight({created_date}, {airplane}, {flight_plan}, {partition_interval}, {longitude_based})'.format(
+            created_date=repr(self.created_date),
+            airplane=repr(self.airplane),
+            flight_plan=repr(self.flight_plan),
+            partition_interval=self.partition_interval,
+            longitude_based=self.longitude_based
+        )

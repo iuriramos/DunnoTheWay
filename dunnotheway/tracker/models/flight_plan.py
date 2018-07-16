@@ -18,3 +18,9 @@ class FlightPlan(Base):
         self.departure_airport = departure_airport
         self.destination_airport = destination_airport
 
+    def __repr__(self):
+        return 'FlightPlan({callsign}, {departure_airport}, {destination_airport})'.format(
+            callsign=self.callsign,
+            departure_airport=repr(self.departure_airport),
+            destination_airport=repr(self.destination_airport)
+        )

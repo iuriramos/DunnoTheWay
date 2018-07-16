@@ -22,4 +22,13 @@ class FlightLocation(Base):
         self.altitude = altitude
         self.speed = speed
         self.flight = flight
-        
+
+    def __repr__(self):
+        return 'FlightLocation({timestamp}, {longitude}, {latitude}, {altitude}, {flight})'.format(
+            timestamp=self.timestamp,
+            longitude=self.longitude,
+            latitude=self.latitude,
+            altitude=self.altitude,
+            flight=repr(self.flight)
+        )
+ 

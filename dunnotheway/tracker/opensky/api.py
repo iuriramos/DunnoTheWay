@@ -5,6 +5,7 @@ import json
 # load opensky-api
 sys.path.append('/home/iuri/workspace/opensky-api/python')
 
+from sqlalchemy import literal
 from opensky_api import OpenSkyApi
 from common.settings import BASE_DIR
 from tracker.models.airport import Airport
@@ -31,9 +32,8 @@ SIMILAR_STATE_VECTORS_LIMIT = config['DEFAULT']['SIMILAR_STATE_VECTORS_LIMIT']
 
 def get_flight_address_from_callsign(callsign):
     '''Return flight ICAO24 address from callsign'''
-    api = OpenSkyApi()
-    for state in api.get_states():
-        if check_valid_state(state) and get_state_callsign(state) == callsign:
+    for state in get_states():
+        if get_state_callsign(state) == callsign:
             return get_state_address(state)
     return None
 
@@ -42,8 +42,8 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
     addresses = []
     callsigns = get_callsigns_from_airports(departure_airport, destination_airport)
     bbox = get_bounding_box_from_airports(departure_airport, destination_airport)
-    # states = get_states_from_bounding_box(bbox)
-    states = get_states()
+    # states = get_states()
+    states = get_states_from_bounding_box(bbox)
     for state in states:
         if get_state_callsign(state) in callsigns:
             addresses.append(get_state_address(state))
@@ -55,12 +55,16 @@ def get_states():
 
 def get_states_from_bounding_box(bbox):
     api = OpenSkyApi()
-    return [state for state in api.get_states(bbox=bbox).states if check_valid_state(state)]
+    valid_states = [state for state in api.get_states(bbox=bbox).states if check_valid_state(state)]
+    return valid_states
 
 def get_states_from_addresses(addresses):
     '''Return state-vectors of flights flying from a list of addresses or a single address'''
+    if not addresses: # empty list
+        return []
     api = OpenSkyApi()
-    return [state for state in api.get_states(icao24=addresses).states if check_valid_state(state)]
+    valid_states = [state for state in api.get_states(icao24=addresses).states if check_valid_state(state)]
+    return valid_states
 
 def get_callsigns_from_airports(departure_airport, destination_airport):
     '''Return callsigns of flights flying from departure airport to destination airport'''
@@ -240,12 +244,21 @@ def create_report(flight_entries):
 
 def track_flight_from_callsign(callsign):
     '''Keep track of flight information from its callsign'''
+    if not get_flight_plan_from_callsign(callsign):
+        return
     address_to_flight = {}
     count_iterations = 0
-    while count_iterations > ITERATIONS_LIMIT:
+    while count_iterations < ITERATIONS_LIMIT:
+        # time.sleep(SLEEP_TIME_GET_FLIGHT)
         address = get_flight_address_from_callsign(callsign)
         update_flights(address_to_flight, addresses=[address])
         count_iterations += 1
+
+def get_flight_plan_from_callsign(callsign):
+    '''Return FlightPlan associated with callsign'''
+    session = Session()
+    flight_plan = session.query(Airline).filter(FlightPlan.callsign == callsign).first()
+    return flight_plan
 
 def track_flights_from_airports(departure_airport_code, destination_airport_code, round_trip_mode=False):
     '''Keep track of current flights information from departure airport to destination airport'''
@@ -259,9 +272,10 @@ def track_flights_from_airports(departure_airport_code, destination_airport_code
         return count_iterations % times == 0
 
     while count_iterations < ITERATIONS_LIMIT:
+        time.sleep(SLEEP_TIME_GET_FLIGHT)
         if should_update_flight_addresses(count_iterations):
             addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
-            update_flights(address_to_flight, addresses)
+        update_flights(address_to_flight, addresses)
         count_iterations += 1
 
 def get_airport_from_airport_code(airport_code):
@@ -298,7 +312,7 @@ def update_current_flights(address_to_flight, addresses):
             new_flight = get_flight_from_state(state)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
-        flight.flight_locations(get_flight_location_from_state(state, flight))
+        flight.flight_locations.append(get_flight_location_from_state(state, flight))
 
 def get_flight_location_from_state(state, flight):
     '''Return flight location from state-vector and flight object'''
@@ -337,7 +351,7 @@ def get_airplane_from_state(state):
     session = Session()
     icao_code = get_state_address(state)
     q = session.query(Airplane).filter(Airplane.icao_code == icao_code)
-    if session.query(q.exists()):
+    if session.query(literal(True)).filter(q.exists()).scalar():
         airplane = q.first()
     else: # create new airplane object
         airplane = Airplane(

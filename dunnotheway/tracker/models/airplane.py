@@ -7,7 +7,7 @@ class Airplane(Base):
     __tablename__ = 'airplanes'
 
     id = Column(Integer, primary_key=True)
-    icao_code = Column(String(4), unique=True, nullable=False) # ICAO 24-bit identifier
+    icao_code = Column(String(6), unique=True, nullable=False) # ICAO 24-bit identifier
     airline_id = Column(Integer, ForeignKey('airlines.id'))
     airline = relationship('Airline', backref='airplanes')
     manufacturer = Column(String)
@@ -18,3 +18,9 @@ class Airplane(Base):
         self.airline = airline
         self.manufacturer = manufacturer
         self.model = model
+
+    def __repr__(self):
+        return 'Airplane({icao_code}, {airline})'.format(
+            icao_code=self.icao_code,
+            airline=self.airline
+        )
