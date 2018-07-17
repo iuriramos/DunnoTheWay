@@ -115,13 +115,13 @@ def get_state_callsign(state):
 
 def save_flight(flight):
     '''Save flight information in database'''
-    logger.info('Save flight information of flight {0}'.format(flight))
+    logger.info('Save flight information of flight {0!r}'.format(flight))
     session.add(flight)
     session.commit()
 
 def normalize_flight_locations(flight):
     '''Normalize flight locations information.'''
-    logger.info('Normalize flight information of flight {0}'.format(flight))
+    logger.info('Normalize flight information of flight {0!r}'.format(flight))
     filter_duplicated_flight_locations(flight)
     filter_cruising_flight_locations(flight)
     fixed_points = get_flight_trajectory_fixed_points(flight)
@@ -265,7 +265,7 @@ def get_flight_trajectory_fixed_points(flight):
 # check assumptions in a visual way
 def create_report(flight): 
     '''Create report from flight (flight location, speed, vertical_rate)'''
-    logger.info('Create report for flight {0}'.format(flight))
+    logger.info('Create report for flight {0!r}'.format(flight))
     draw_flight_path(flight.flight)    
     draw_flight_location_params(flight)
 
@@ -354,7 +354,7 @@ def get_airport_from_airport_code(airport_code):
 
 def update_flight_addresses(departure_airport, destination_airport, round_trip_mode):
     '''Update pool of flight addresses from time to time'''
-    logger.info('Update flight addresses from {0} to {1} in {2} mode'.format(
+    logger.info('Update flight addresses from {0!r} to {1!r} in {2} mode'.format(
         departure_airport, destination_airport, 'round trip' if round_trip_mode else 'one way'))
 
     addresses = get_flight_addresses_from_airports(departure_airport, destination_airport)
@@ -374,7 +374,7 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
         if get_state_callsign(state) in callsigns:
             addresses.append(get_state_address(state))
     
-    logger.debug('Flight addresses found from {0} to {1}: {2}'.format(
+    logger.debug('Flight addresses found from {0!r} to {1!r}: {2}'.format(
         departure_airport, destination_airport, addresses))
     return addresses
 
@@ -418,7 +418,7 @@ def get_flight_location_from_state(state, flight):
         flight=flight
     )        
 
-    logger.debug('Create new flight location object: {0}'.format(flight_location))
+    logger.debug('Create new flight location object: {0!r}'.format(flight_location))
     return flight_location
 
 def get_flight_from_state(state):
@@ -434,7 +434,7 @@ def get_flight_from_state(state):
         longitude_based=longitude_based
     )
 
-    logger.debug('Create new flight object: {0}'.format(flight))
+    logger.debug('Create new flight object: {0!r}'.format(flight))
     return flight
 
 def should_partition_by_longitude(flight_plan):
