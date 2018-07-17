@@ -25,6 +25,8 @@ class StateVector:
 
     @staticmethod
     def build_from_dict(response_dict):
+        if response_dict['states'] is None:
+            return []
         state_vectors = []
         for args in response_dict['states']:
             state_vector = StateVector(*args)
