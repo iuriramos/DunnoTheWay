@@ -1,12 +1,12 @@
 import os
-import sys
 import time 
 import json
-# load opensky-api
-sys.path.append('/home/iuri/workspace/opensky-api/python')
-
+import requests
 from sqlalchemy import literal
-from opensky_api import OpenSkyApi
+from contextlib import contextmanager
+from datetime import datetime
+# import matplotlib.pyplot as plt 
+
 from common.settings import BASE_DIR
 from tracker.models.airport import Airport
 from tracker.models.airline import Airline
@@ -15,7 +15,8 @@ from tracker.models.flight import Flight
 from tracker.models.flight_plan import FlightPlan
 from tracker.models.flight_location import FlightLocation
 from tracker.models.base import Session
-# import matplotlib.pyplot as plt 
+
+from .state_vector import StateVector
 
 # load config file
 CONFIG_PATH = os.path.join(BASE_DIR, 'tracker', 'common', 'config.json')
@@ -23,11 +24,21 @@ with open(CONFIG_PATH) as f:
     config = json.load(f)
 
 # config variables
+OPEN_SKY_URL = 'https://opensky-network.org/api/states/all'
 SLEEP_TIME_GET_FLIGHT = config['DEFAULT']['SLEEP_TIME_GET_FLIGHT'] 
 SLEEP_TIME_SEARCH_FLIGHT = config['DEFAULT']['SLEEP_TIME_SEARCH_FLIGHT'] 
 ITERATIONS_LIMIT = config['DEFAULT']['ITERATIONS_LIMIT'] 
 FLIGHT_PATH_PARTITION_INTERVAL = config['DEFAULT']['FLIGHT_PATH_PARTITION_INTERVAL'] 
 SIMILAR_STATE_VECTORS_LIMIT = config['DEFAULT']['SIMILAR_STATE_VECTORS_LIMIT'] 
+
+
+@contextmanager
+def open_database_session():
+    '''Contexto manager to handle session related to db'''
+    global session
+    session = Session()
+    yield
+    session.close()
 
 
 def get_flight_address_from_callsign(callsign):
@@ -50,26 +61,33 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
     return addresses
 
 def get_states():
-    api = OpenSkyApi()
-    return [state for state in api.get_states().states if check_valid_state(state)]
+    '''Return current state-vectors'''
+    r = requests.get(OPEN_SKY_URL)
+    states = StateVector.build_from_dict(r.json())
+    valid_states = [state for state in states if check_valid_state(state)]
+    return valid_states
 
 def get_states_from_bounding_box(bbox):
-    api = OpenSkyApi()
-    valid_states = [state for state in api.get_states(bbox=bbox).states if check_valid_state(state)]
+    '''Return current state-vectors within bounding box'''
+    lamin, lamax, lomin, lomax = bbox
+    payload = dict(lamin=lamin, lamax=lamax, lomin=lomin, lomax=lomax)
+    r = requests.get(OPEN_SKY_URL, params=payload)
+    states = StateVector.build_from_dict(r.json())
+    valid_states = [state for state in states if check_valid_state(state)]
     return valid_states
 
 def get_states_from_addresses(addresses):
     '''Return state-vectors of flights flying from a list of addresses or a single address'''
     if not addresses: # empty list
         return []
-    api = OpenSkyApi()
-    valid_states = [state for state in api.get_states(icao24=addresses).states if check_valid_state(state)]
+    payload = dict(icao24=addresses)
+    r = requests.get(OPEN_SKY_URL, params=payload)
+    states = StateVector.build_from_dict(r.json())
+    valid_states = [state for state in states if check_valid_state(state)]
     return valid_states
 
 def get_callsigns_from_airports(departure_airport, destination_airport):
     '''Return callsigns of flights flying from departure airport to destination airport'''
-    session = Session()
-    # query database for flighplans from departure airport to destination airport
     flightplans = (session.query(FlightPlan)
         .filter(FlightPlan.departure_airport == departure_airport, FlightPlan.destination_airport == destination_airport)
         .all()) 
@@ -186,7 +204,7 @@ def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude
     else: # latitude based
         latitude = mid_point
         start_interval, end_interval = prev_location.latitude, curr_location.latitude
-        timestamp = find_mid_value(alpha, prev_location.timestamp, curr_location.timestamp)
+        timestamp = find_mid_value(alpha, prev_location.timestamp, curr_location.timestamp) # TODO: timestamp operations
         longitude = find_mid_value(alpha, prev_location.longitude, curr_location.longitude)
         speed = find_mid_value(alpha, prev_location.speed, curr_location.speed)
     
@@ -231,11 +249,9 @@ def normalize_flight_locations(flight):
 
 def save_flight(flight):
     '''Save flight information in database'''
-    session = Session()
     normalize_flight_locations(flight)
     session.add(flight)
-    session.commit()
-    session.close()
+    session.commit(flight)
 
 # TODO: save figure to check assumptions in a visual way
 def create_report(flight_entries): 
@@ -248,15 +264,15 @@ def track_flight_from_callsign(callsign):
         return
     address_to_flight = {}
     count_iterations = 0
-    while count_iterations < ITERATIONS_LIMIT:
-        # time.sleep(SLEEP_TIME_GET_FLIGHT)
-        address = get_flight_address_from_callsign(callsign)
-        update_flights(address_to_flight, addresses=[address])
-        count_iterations += 1
+    with open_database_session():
+        while count_iterations < ITERATIONS_LIMIT:
+            # time.sleep(SLEEP_TIME_GET_FLIGHT)
+            address = get_flight_address_from_callsign(callsign)
+            update_flights(address_to_flight, addresses=[address])
+            count_iterations += 1
 
 def get_flight_plan_from_callsign(callsign):
     '''Return FlightPlan associated with callsign'''
-    session = Session()
     flight_plan = session.query(Airline).filter(FlightPlan.callsign == callsign).first()
     return flight_plan
 
@@ -264,24 +280,26 @@ def track_flights_from_airports(departure_airport_code, destination_airport_code
     '''Keep track of current flights information from departure airport to destination airport'''
     address_to_flight = {}
     count_iterations = 0
-    departure_airport = get_airport_from_airport_code(departure_airport_code)
-    destination_airport = get_airport_from_airport_code(destination_airport_code)
     
     def should_update_flight_addresses(count_iterations):
         times = SLEEP_TIME_SEARCH_FLIGHT//SLEEP_TIME_GET_FLIGHT
         return count_iterations % times == 0
 
-    while count_iterations < ITERATIONS_LIMIT:
-        time.sleep(SLEEP_TIME_GET_FLIGHT)
-        if should_update_flight_addresses(count_iterations):
-            addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
-        update_flights(address_to_flight, addresses)
-        count_iterations += 1
+    with open_database_session():
+        departure_airport = get_airport_from_airport_code(departure_airport_code)
+        destination_airport = get_airport_from_airport_code(destination_airport_code)
+    
+        while count_iterations < ITERATIONS_LIMIT:
+            time.sleep(SLEEP_TIME_GET_FLIGHT)
+            if should_update_flight_addresses(count_iterations):
+                addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
+            update_flights(address_to_flight, addresses)
+            count_iterations += 1
 
 def get_airport_from_airport_code(airport_code):
     '''Return airport from airport code'''
-    session = Session()
-    return session.query(Airport).filter(Airport.code == airport_code).first()
+    airport = session.query(Airport).filter(Airport.code == airport_code).first()
+    return airport
 
 def update_flight_addresses(departure_airport, destination_airport, round_trip_mode):
     '''Update pool of flight addresses from time to time'''
@@ -317,7 +335,7 @@ def update_current_flights(address_to_flight, addresses):
 def get_flight_location_from_state(state, flight):
     '''Return flight location from state-vector and flight object'''
     return FlightLocation(
-        timestamp=state.time_position, # TODO: epoch to datetime
+        timestamp=datetime.fromtimestamp(state.time_position),
         longitude=state.longitude,
         latitude=state.latitude,
         altitude=state.baro_altitude, # barometric altitude
@@ -348,7 +366,6 @@ def should_partition_by_longitude(flight_plan):
 def get_airplane_from_state(state):
     '''Return airplane object from state-vector if the airplane is in database.
     Otherwise, create and return new airplane object.'''
-    session = Session()
     icao_code = get_state_address(state)
     q = session.query(Airplane).filter(Airplane.icao_code == icao_code)
     if session.query(literal(True)).filter(q.exists()).scalar():
@@ -367,9 +384,9 @@ def get_airline_from_state(state):
 
 def get_airline_from_callsign(callsign):
     '''Return Airline associated with callsign'''
-    session = Session()
     icao_code, _ = split_callsign(callsign)
-    return session.query(Airline).filter(Airline.icao_code == icao_code).first()
+    airline = session.query(Airline).filter(Airline.icao_code == icao_code).first()
+    return airline
 
 def split_callsign(callsign):
     '''Split callsign in meaninful chunks (airplane designator and flight number)'''
@@ -378,7 +395,7 @@ def split_callsign(callsign):
 
 def get_flight_plan_from_state(state):
     '''Return flight plan information from state-vector'''
-    session = Session()
     callsign = get_state_callsign(state)
     flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == callsign).first()
     return flight_plan
+
