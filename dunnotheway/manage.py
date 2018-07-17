@@ -1,5 +1,4 @@
 import fire 
-import logging
 import tracker.models.fixtures
 import tracker.opensky.api as opensky_api
 
@@ -10,4 +9,4 @@ if __name__ == '__main__':
     # })
 
     opensky_api.track_flights_from_airports('BSB', 'GRU', True)
-    # opensky_api.track_flight_from_callsign('ONE6321')
+    

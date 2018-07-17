@@ -5,9 +5,10 @@ import requests
 from sqlalchemy import literal
 from contextlib import contextmanager
 from datetime import datetime
-# import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt 
 
 from common.settings import BASE_DIR
+from tracker.common.settings import logger
 from tracker.models.airport import Airport
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
@@ -48,18 +49,6 @@ def get_flight_address_from_callsign(callsign):
             return get_state_address(state)
     return None
 
-def get_flight_addresses_from_airports(departure_airport, destination_airport):
-    '''Return flight ICAO24 addresses from departure airport to destination airport'''
-    addresses = []
-    callsigns = get_callsigns_from_airports(departure_airport, destination_airport)
-    bbox = get_bounding_box_from_airports(departure_airport, destination_airport)
-    # states = get_states()
-    states = get_states_from_bounding_box(bbox)
-    for state in states:
-        if get_state_callsign(state) in callsigns:
-            addresses.append(get_state_address(state))
-    return addresses
-
 def get_states():
     '''Return current state-vectors'''
     r = requests.get(OPEN_SKY_URL)
@@ -84,6 +73,8 @@ def get_states_from_addresses(addresses):
     r = requests.get(OPEN_SKY_URL, params=payload)
     states = StateVector.build_from_dict(r.json())
     valid_states = [state for state in states if check_valid_state(state)]
+    logger.debug('State-Vectors found from addresses {0}: {1}'.format(
+        addresses, valid_states))
     return valid_states
 
 def get_callsigns_from_airports(departure_airport, destination_airport):
@@ -121,15 +112,21 @@ def get_state_address(state):
 def get_state_callsign(state):
     '''Return state-vector flight callsign'''
     return state.callsign.strip()
-    
 
-# def find_flight_from_flightplan(flightplan):
-#     '''Return current flight from its flightplan'''
-#     pass
+def save_flight(flight):
+    '''Save flight information in database'''
+    logger.info('Save flight information of flight {0}'.format(flight))
+    session.add(flight)
+    session.commit()
 
-# def find_flightlocations_from_flight(flight):
-#     '''Return cruising flight locations of flight'''
-#     pass
+def normalize_flight_locations(flight):
+    '''Normalize flight locations information.'''
+    logger.info('Normalize flight information of flight {0}'.format(flight))
+    filter_duplicated_flight_locations(flight)
+    filter_cruising_flight_locations(flight)
+    fixed_points = get_flight_trajectory_fixed_points(flight)
+    filter_fixed_points_flight_locations(flight, fixed_points)
+
 
 def filter_duplicated_flight_locations(flight):
     '''Remove duplicated flight locations.'''
@@ -143,6 +140,9 @@ def filter_duplicated_flight_locations(flight):
         if not check_equal_flight_locations(prev, curr):
             flight_locations.append(curr)
         prev = curr
+    
+    logger.debug('Remove from {0} duplicated flight locations to {1} unique ones'.format(
+        len(flight.flight_locations), len(flight_locations)))
     # update flight locations of flight
     flight.flight_locations = flight_locations
 
@@ -150,7 +150,7 @@ def filter_cruising_flight_locations(flight):
     '''Filter only flight locations in cruising speed.'''
     flight_locations = []
 
-    def check_cruising_flight_location(prev, curr): # TODO:check other attributes
+    def check_cruising_flight_location(prev, curr): # also check other attributes
         return prev and prev.altitude == curr.altitude
 
     prev = None
@@ -158,22 +158,31 @@ def filter_cruising_flight_locations(flight):
         if check_cruising_flight_location(prev, curr):
             flight_locations.append(curr)
         prev = curr
+
+    logger.debug('Remove from {0} flight locations to {1} crusing flight locations'.format(
+        len(flight.flight_locations), len(flight_locations)))
     # update flight locations of flight
     flight.flight_locations = flight_locations
 
 def filter_fixed_points_flight_locations(flight, fixed_points):
     '''Filter flight locations for specific fixed points'''
-    fixed_flight_locations = []
     flight_locations = flight.flight_locations
     if len(flight_locations) < 2:
-        return fixed_flight_locations
+        return []
+    
+    fixed_flight_locations = []
     longitude_based = flight.longitude_based
     fixed_points_iterator = iter(fixed_points)
     mid_point = next(fixed_points_iterator)
+
     for prev_location, curr_location in zip(flight_locations, flight_locations[1:]):
         while not check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
-            mid_point = next(fixed_points_iterator)
-        fixed_flight_locations.append(get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based))
+            mid_point = next(fixed_points_iterator) # StopIteration Exception
+        fixed_flight_location = get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based)
+        fixed_flight_locations.append(fixed_flight_location)
+    
+    logger.debug('Remove from {0} flight locations to {1} fixed flight locations'.format(
+        len(flight.flight_locations), len(fixed_flight_locations)))
     flight.flight_locations = fixed_flight_locations
 
 def check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
@@ -181,10 +190,10 @@ def check_mid_point_within_flight_locations(mid_point, prev_location, curr_locat
     comparing either to the longitude or to the latitude of points.'''
     if longitude_based:
         start_interval, end_interval = sorted([
-            prev_location.longitude, curr_location.longitude])
+            float(prev_location.longitude), float(curr_location.longitude)])
     else: # latitude based
         start_interval, end_interval = sorted([
-            prev_location.latitude, curr_location.latitude])
+            float(prev_location.latitude), float(curr_location.latitude)])
     return start_interval <= mid_point <= end_interval
 
 def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based):
@@ -196,26 +205,39 @@ def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude
     
     if longitude_based:
         longitude = mid_point
-        start_interval, end_interval = prev_location.longitude, curr_location.longitude
-        alpha = (mid_point-start_interval)/(end_interval-start_interval) # TODO:DivisionByZeroError
-        timestamp = find_mid_value(alpha, prev_location.timestamp, curr_location.timestamp)
-        latitude = find_mid_value(alpha, prev_location.latitude, curr_location.latitude)
-        speed = find_mid_value(alpha, prev_location.speed, curr_location.speed)
+        start_interval, end_interval = float(prev_location.longitude), float(curr_location.longitude)
+        alpha = (mid_point-start_interval)/(end_interval-start_interval) # DivisionByZeroError not possible 
+        latitude = find_mid_value(alpha, float(prev_location.latitude), float(curr_location.latitude))
     else: # latitude based
         latitude = mid_point
-        start_interval, end_interval = prev_location.latitude, curr_location.latitude
-        timestamp = find_mid_value(alpha, prev_location.timestamp, curr_location.timestamp) # TODO: timestamp operations
-        longitude = find_mid_value(alpha, prev_location.longitude, curr_location.longitude)
-        speed = find_mid_value(alpha, prev_location.speed, curr_location.speed)
+        start_interval, end_interval = float(prev_location.latitude), float(curr_location.latitude)
+        longitude = find_mid_value(alpha, float(prev_location.longitude), float(curr_location.longitude))
+    
+    # speed and timestamp operations
+    speed = find_mid_value(alpha, float(prev_location.speed), float(curr_location.speed))
+    timestamp = from_timestamp_to_datetime(
+        find_mid_value(alpha, 
+            from_datetime_to_timestamp(prev_location.timestamp), 
+            from_datetime_to_timestamp(curr_location.timestamp)
+        )
+    ) 
     
     return FlightLocation(
-        timestamp=timestamp,
+        timestamp=timestamp, # as datetime object
         longitude=longitude,
         latitude=latitude,
         speed=speed,
         altitude=prev_location.altitude,
         flight=prev_location.flight
     )
+
+def from_datetime_to_timestamp(dt):
+    '''Convert datetime object in timestamp'''
+    return time.mktime(dt.timetuple())
+
+def from_timestamp_to_datetime(ts):
+    '''Convert timestamp in datetime object'''
+    return datetime.fromtimestamp(ts)
 
 def get_flight_trajectory_fixed_points(flight):
     '''Return fixed points related to flight trajectory'''
@@ -231,32 +253,58 @@ def get_flight_trajectory_fixed_points(flight):
 
     if flight.longitude_based:
         start_interval, end_interval = sorted([
-            flight.flight_plan.departure_airport.longitude, 
-            flight.flight_plan.destination_airport.longitude])
+            float(flight.flight_plan.departure_airport.longitude), 
+            float(flight.flight_plan.destination_airport.longitude)])
     else:
         start_interval, end_interval = sorted([
-            flight.flight_plan.departure_airport.latitude, 
-            flight.flight_plan.destination_airport.latitude])
-    return split_interval_in_fixed_partitions(
-        start_interval, end_interval, partition_interval)
+            float(flight.flight_plan.departure_airport.latitude), 
+            float(flight.flight_plan.destination_airport.latitude)])
+
+    return split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
     
-def normalize_flight_locations(flight):
-    '''Normalize flight locations information.'''
-    filter_duplicated_flight_locations(flight)
-    filter_cruising_flight_locations(flight)
-    fixed_points = get_flight_trajectory_fixed_points(flight)
-    filter_fixed_points_flight_locations(flight, fixed_points)
+# check assumptions in a visual way
+def create_report(flight): 
+    '''Create report from flight (flight location, speed, vertical_rate)'''
+    logger.info('Create report for flight {0}'.format(flight))
+    draw_flight_path(flight.flight)    
+    draw_flight_location_params(flight)
 
-def save_flight(flight):
-    '''Save flight information in database'''
-    normalize_flight_locations(flight)
-    session.add(flight)
-    session.commit(flight)
+def draw_flight_path(flight):
+    '''Draw flight locations (longitude, latitude) path from departure airport to destination airport'''
+    flight_locations = flight.flight_locations
+    longitudes = [float(flight_location.longitude) for flight_location in flight_locations]
+    latitudes = [float(flight_location.latitude) for flight_location in flight_locations]
+    _, axes = plt.subplots()
+    
+    # draw flight path
+    axes.scatter(longitudes, latitudes)
+    axes.set_title('Longitudes vs Latitudes')
+    axes.set_xlabel('Longitude')
+    axes.set_ylabel('Latitude')
 
-# TODO: save figure to check assumptions in a visual way
-def create_report(flight_entries): 
-    '''Create report from flight entries (flight location, speed, vertical_rate)'''
-    pass
+    plt.savefig(str(flight.created_date) + '(cruising path)')
+
+def draw_flight_location_params(flight):
+    '''Draw flight locations parameters'''
+    flight_locations = flight.flight_locations
+    _, axes = plt.subplots(nrows=2, ncols=1)
+    axis_altitude, axis_speed = axes
+
+    # draw flight location params
+    draw_flight_location_altitudes(flight_locations, axis_altitude)
+    draw_flight_location_speeds(flight_locations, axis_speed)
+    
+    plt.savefig(str(flight.created_date) + '(cruising params)')
+
+def draw_flight_location_speeds(flight_locations, axis):
+    speeds = [float(flight_location.speed) for flight_location in flight_locations]
+    axis.plot(speeds)
+    axis.set_title('Cruising Speed')
+
+def draw_flight_location_altitudes(flight_locations, axis):
+    altitudes = [float(flight_location.altitude) for flight_location in flight_locations]
+    axis.plot(altitudes)
+    axis.set_title('Barometric Altitudes')
 
 def track_flight_from_callsign(callsign):
     '''Keep track of flight information from its callsign'''
@@ -278,6 +326,9 @@ def get_flight_plan_from_callsign(callsign):
 
 def track_flights_from_airports(departure_airport_code, destination_airport_code, round_trip_mode=False):
     '''Keep track of current flights information from departure airport to destination airport'''
+    logger.info('Track flight addresses from {0} to {1} in {2} mode'.format(
+        departure_airport_code, destination_airport_code, 'round trip' if round_trip_mode else 'one way'))
+    
     address_to_flight = {}
     count_iterations = 0
     
@@ -303,9 +354,28 @@ def get_airport_from_airport_code(airport_code):
 
 def update_flight_addresses(departure_airport, destination_airport, round_trip_mode):
     '''Update pool of flight addresses from time to time'''
+    logger.info('Update flight addresses from {0} to {1} in {2} mode'.format(
+        departure_airport, destination_airport, 'round trip' if round_trip_mode else 'one way'))
+
     addresses = get_flight_addresses_from_airports(departure_airport, destination_airport)
     if round_trip_mode:
         addresses += get_flight_addresses_from_airports(destination_airport, departure_airport)
+    
+    return addresses
+
+def get_flight_addresses_from_airports(departure_airport, destination_airport):
+    '''Return flight ICAO24 addresses from departure airport to destination airport'''
+    addresses = []
+    callsigns = get_callsigns_from_airports(departure_airport, destination_airport)
+    bbox = get_bounding_box_from_airports(departure_airport, destination_airport)
+    states = get_states_from_bounding_box(bbox)
+    
+    for state in states:
+        if get_state_callsign(state) in callsigns:
+            addresses.append(get_state_address(state))
+    
+    logger.debug('Flight addresses found from {0} to {1}: {2}'.format(
+        departure_airport, destination_airport, addresses))
     return addresses
 
 def update_flights(address_to_flight, addresses):
@@ -316,14 +386,19 @@ def update_flights(address_to_flight, addresses):
 def update_finished_flights(address_to_flight, addresses):
     '''Update finished flights in address to flight mappig'''
     old_addresses = address_to_flight.keys() - addresses
+    logger.info('Update finished flights (addresses): {0}'.format(old_addresses))
+
     for address in old_addresses:
         flight = address_to_flight[address]
+        normalize_flight_locations(flight)
         save_flight(flight) # save flight locations as well
         create_report(flight) # create report if flag is set to True
         del address_to_flight[address]
 
 def update_current_flights(address_to_flight, addresses):
     '''Update address to flight mapping with current values of addresses'''
+    logger.info('Update current flights: {0}'.format(addresses))
+
     for state in get_states_from_addresses(addresses):
         address = get_state_address(state)
         if address not in address_to_flight:
@@ -334,8 +409,8 @@ def update_current_flights(address_to_flight, addresses):
 
 def get_flight_location_from_state(state, flight):
     '''Return flight location from state-vector and flight object'''
-    return FlightLocation(
-        timestamp=datetime.fromtimestamp(state.time_position),
+    flight_location = FlightLocation(
+        timestamp=from_timestamp_to_datetime(state.time_position), # timestamp as datetime object
         longitude=state.longitude,
         latitude=state.latitude,
         altitude=state.baro_altitude, # barometric altitude
@@ -343,17 +418,24 @@ def get_flight_location_from_state(state, flight):
         flight=flight
     )        
 
+    logger.debug('Create new flight location object: {0}'.format(flight_location))
+    return flight_location
+
 def get_flight_from_state(state):
     '''Return flight object from state-vector.'''
     flight_plan = get_flight_plan_from_state(state)
     airplane = get_airplane_from_state(state)
     longitude_based = should_partition_by_longitude(flight_plan) 
-    return Flight (
+    
+    flight = Flight (
         airplane=airplane,
         flight_plan=flight_plan,
         partition_interval=FLIGHT_PATH_PARTITION_INTERVAL,
         longitude_based=longitude_based
     )
+
+    logger.debug('Create new flight object: {0}'.format(flight))
+    return flight
 
 def should_partition_by_longitude(flight_plan):
     '''Return if flight trajectory should be split by longitude or latitude.'''
