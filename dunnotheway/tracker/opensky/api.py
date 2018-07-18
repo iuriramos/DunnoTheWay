@@ -202,19 +202,20 @@ def check_mid_point_before_location(mid_point, location, longitude_based, follow
         base_point = float(location.longitude)
     else: # latitude based
         base_point = float(location.latitude)
+    logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_increasing_order]))
     return mid_point < base_point if follow_increasing_order else mid_point > base_point
 
 def check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
     '''Check if mid point is within two flight locations (`prev_location` and `curr_location`)
     comparing either to the longitude or to the latitude of points.'''
     if longitude_based:
-        start_interval, end_interval = sorted([
-            float(prev_location.longitude), float(curr_location.longitude)])
+        start_interval, end_interval = (
+            float(prev_location.longitude), float(curr_location.longitude))
     else: # latitude based
-        start_interval, end_interval = sorted([
-            float(prev_location.latitude), float(curr_location.latitude)])
+        start_interval, end_interval = (
+            float(prev_location.latitude), float(curr_location.latitude))
     logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
-    return start_interval <= mid_point < end_interval
+    return start_interval <= mid_point < end_interval or end_interval <= mid_point < start_interval
 
 def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based):
     '''Return fixed flight location within two flight locations (`prev_location` and `curr_location`)

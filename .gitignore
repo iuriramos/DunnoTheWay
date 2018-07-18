@@ -2,6 +2,7 @@
 Pipfile
 notebooks/
 logs/
+reports/
 .vscode/
 
 # Byte-compiled / optimized / DLL files
