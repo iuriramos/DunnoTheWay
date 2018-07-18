@@ -13,7 +13,7 @@ class FlightLocation(Base):
     altitude = Column(Numeric, nullable=False)
     speed = Column(Numeric, nullable=False)
     flight_id = Column(Integer, ForeignKey('flights.id'), nullable=False)
-    flight = relationship('Flight', backref='flight_locations')
+    flight = relationship("Flight", back_populates="flight_locations")
 
     def __init__(self, timestamp, longitude, latitude, altitude, speed, flight):
         self.timestamp = timestamp

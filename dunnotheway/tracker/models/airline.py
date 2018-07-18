@@ -17,8 +17,7 @@ class Airline(Base):
         self.country = country
 
     def __repr__(self):
-        return 'Airline({icao_code}, {name}, {country})'.format(
+        return 'Airline({icao_code}, {name})'.format(
             icao_code=self.icao_code,
-            name=self.name,
-            country=self.country
+            name=self.name
         )

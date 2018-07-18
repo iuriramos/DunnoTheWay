@@ -15,6 +15,7 @@ class Flight(Base):
     flight_plan = relationship('FlightPlan', backref='flights')
     partition_interval = Column(Numeric)
     longitude_based = Column(Boolean)
+    flight_locations = relationship('FlightLocation', back_populates='flight', cascade="all, delete-orphan")
 
     def __init__(self, airplane, flight_plan, partition_interval, longitude_based):
         self.created_date = datetime.now()
@@ -24,10 +25,4 @@ class Flight(Base):
         self.longitude_based = longitude_based
 
     def __repr__(self):
-        return 'Flight({created_date}, {airplane}, {flight_plan}, {partition_interval}, {longitude_based})'.format(
-            created_date=repr(self.created_date),
-            airplane=repr(self.airplane),
-            flight_plan=repr(self.flight_plan),
-            partition_interval=self.partition_interval,
-            longitude_based=self.longitude_based
-        )
+        return 'Flight({airplane})'.format(airplane=repr(self.airplane))
