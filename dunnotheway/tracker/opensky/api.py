@@ -281,7 +281,7 @@ def get_flight_trajectory_fixed_points(flight):
             float(flight.flight_plan.departure_airport.latitude), 
             float(flight.flight_plan.destination_airport.latitude))
     
-    follow_increasing_order = start_interval > end_interval
+    follow_increasing_order = start_interval < end_interval
     partition_interval = float(flight.partition_interval)
     start_interval, end_interval = sorted([start_interval, end_interval])
     partitions = split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
