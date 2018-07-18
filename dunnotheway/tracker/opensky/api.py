@@ -176,25 +176,36 @@ def filter_fixed_points_flight_locations(flight, fixed_points):
     
     fixed_flight_locations = []
     longitude_based = flight.longitude_based
+    follow_increasing_order = fixed_points[-1] > fixed_points[0] 
     fixed_points_iterator = iter(fixed_points)
     mid_point = next(fixed_points_iterator)
 
     for prev_location, curr_location in zip(flight_locations, flight_locations[1:]):
         try:
-            while not check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
+            while check_mid_point_before_location(mid_point, prev_location, longitude_based, follow_increasing_order): 
                 mid_point = next(fixed_points_iterator) # might raise StopIteration Exception
         except StopIteration:
             logger.error('Invalid set of flight locations {0!r} and {1!r} of flight {2!r}'.format(prev_location, curr_location, flight))
             break # leave for outer loop
-        fixed_flight_location = get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based)
-        fixed_flight_locations.append(fixed_flight_location)
+     
+        if check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
+            fixed_flight_location = get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based)
+            fixed_flight_locations.append(fixed_flight_location)
     
     logger.debug('Reduce {0} flight locations to {1} fixed flight locations'.format(
         len(flight.flight_locations), len(fixed_flight_locations)))
     flight.flight_locations = fixed_flight_locations
 
+def check_mid_point_before_location(mid_point, location, longitude_based, follow_increasing_order):
+    '''Check if mid point comes before location.'''
+    if longitude_based:
+        base_point = float(location.longitude)
+    else: # latitude based
+        base_point = float(location.latitude)
+    return mid_point < base_point if follow_increasing_order else mid_point > base_point
+
 def check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
-    '''Check if mid point is in between two flight locations (`prev_location` and `curr_location`)
+    '''Check if mid point is within two flight locations (`prev_location` and `curr_location`)
     comparing either to the longitude or to the latitude of points.'''
     if longitude_based:
         start_interval, end_interval = sorted([
@@ -203,7 +214,7 @@ def check_mid_point_within_flight_locations(mid_point, prev_location, curr_locat
         start_interval, end_interval = sorted([
             float(prev_location.latitude), float(curr_location.latitude)])
     logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
-    return start_interval <= mid_point <= end_interval
+    return start_interval <= mid_point < end_interval
 
 def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based):
     '''Return fixed flight location within two flight locations (`prev_location` and `curr_location`)
@@ -251,27 +262,30 @@ def from_timestamp_to_datetime(ts):
 
 def get_flight_trajectory_fixed_points(flight):
     '''Return fixed points related to flight trajectory'''
-    partition_interval = float(flight.partition_interval)
 
     def split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval):
         points = []
         curr_interval = start_interval
         while curr_interval <= end_interval:
             points.append(curr_interval)
-            curr_interval += partition_interval
+            curr_interval = round(curr_interval + partition_interval, 3)
         return points
 
     if flight.longitude_based:
-        start_interval, end_interval = sorted([
+        start_interval, end_interval = (
             float(flight.flight_plan.departure_airport.longitude), 
-            float(flight.flight_plan.destination_airport.longitude)])
+            float(flight.flight_plan.destination_airport.longitude))
     else:
-        start_interval, end_interval = sorted([
+        start_interval, end_interval = (
             float(flight.flight_plan.departure_airport.latitude), 
-            float(flight.flight_plan.destination_airport.latitude)])
-
-    return split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
+            float(flight.flight_plan.destination_airport.latitude))
     
+    follow_increasing_order = start_interval > end_interval
+    partition_interval = float(flight.partition_interval)
+    start_interval, end_interval = sorted([start_interval, end_interval])
+    partitions = split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
+    return partitions if follow_increasing_order else partitions[::-1]
+
 # check assumptions in a visual way
 def create_report(flight): 
     '''Create report from flight (flight location, speed, vertical_rate)'''
@@ -310,7 +324,7 @@ def draw_flight_location_params(flight):
 
 def get_reports_filepath(flight):
     REPORTS_DIR = os.path.join(BASE_DIR, 'tracker', 'reports')
-    filename = flight.id
+    filename = str(flight.id)
     return os.path.join(REPORTS_DIR, filename)
 
 def draw_flight_location_speeds(flight_locations, axis):
