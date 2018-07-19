@@ -1,5 +1,5 @@
 import fire 
-import tracker.models.fixtures
+# import tracker.models.fixtures
 import tracker.opensky.api as opensky_api
 
 if __name__ == '__main__':
