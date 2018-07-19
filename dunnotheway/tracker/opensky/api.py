@@ -324,9 +324,14 @@ def draw_flight_location_params(flight):
     plt.savefig(filepath)
 
 def get_reports_filepath(flight):
+    '''Return file path of the flight report'''
     REPORTS_DIR = os.path.join(BASE_DIR, 'tracker', 'reports')
+    subdir_name = flight.flight_plan.departure_airport.code + '-' + flight.flight_plan.destination_airport.code
+    REPORTS_SUBDIR = os.path.join(REPORTS_DIR, subdir_name)
+    if not os.path.exists(REPORTS_SUBDIR):
+        os.makedirs(REPORTS_SUBDIR)
     filename = str(flight.id)
-    return os.path.join(REPORTS_DIR, filename)
+    return os.path.join(REPORTS_SUBDIR, filename)
 
 def draw_flight_location_speeds(flight_locations, axis):
     speeds = [float(flight_location.speed) for flight_location in flight_locations]

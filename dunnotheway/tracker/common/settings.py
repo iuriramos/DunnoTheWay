@@ -8,6 +8,8 @@ from common import settings
 
 # Define logger object
 LOGS_DIR = os.path.join(BASE_DIR, 'tracker', 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
 filename = datetime.today().strftime(r'%d-%m-%Y') # day-month-year
 filepath = os.path.join(LOGS_DIR, filename)
 LOG_FORMAT = '%(levelname)s %(asctime)s - %(message)s'
