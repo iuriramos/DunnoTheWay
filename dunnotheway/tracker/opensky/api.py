@@ -202,7 +202,7 @@ def check_mid_point_before_location(mid_point, location, longitude_based, follow
         base_point = float(location.longitude)
     else: # latitude based
         base_point = float(location.latitude)
-    logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_increasing_order]))
+    # logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_increasing_order]))
     return mid_point < base_point if follow_increasing_order else mid_point > base_point
 
 def check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
@@ -214,7 +214,7 @@ def check_mid_point_within_flight_locations(mid_point, prev_location, curr_locat
     else: # latitude based
         start_interval, end_interval = (
             float(prev_location.latitude), float(curr_location.latitude))
-    logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
+    # logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
     return start_interval <= mid_point < end_interval or end_interval <= mid_point < start_interval
 
 def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based):
@@ -420,11 +420,15 @@ def update_finished_flights(address_to_flight, addresses):
     old_addresses = address_to_flight.keys() - addresses
     logger.info('Update finished flights (addresses): {0}'.format(old_addresses))
 
+    def has_flight_locations(flight):
+        return flight.flight_locations
+
     for address in old_addresses:
         flight = address_to_flight[address]
         normalize_flight_locations(flight)
-        save_flight(flight) # save flight locations as well
-        create_report(flight) # create report if flag is set to True
+        if has_flight_locations(flight):
+            save_flight(flight) # save flight locations as well
+            create_report(flight) # create report if flag is set to True
         del address_to_flight[address]
 
 def update_current_flights(address_to_flight, addresses):
