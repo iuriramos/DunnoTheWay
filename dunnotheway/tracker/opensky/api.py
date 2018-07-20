@@ -26,12 +26,11 @@ with open(CONFIG_PATH) as f:
 
 # config variables
 OPEN_SKY_URL = 'https://opensky-network.org/api/states/all'
-SLEEP_TIME_GET_FLIGHT = config['DEFAULT']['SLEEP_TIME_GET_FLIGHT'] 
-SLEEP_TIME_SEARCH_FLIGHT = config['DEFAULT']['SLEEP_TIME_SEARCH_FLIGHT'] 
-ITERATIONS_LIMIT = config['DEFAULT']['ITERATIONS_LIMIT'] 
-FLIGHT_PATH_PARTITION_INTERVAL = config['DEFAULT']['FLIGHT_PATH_PARTITION_INTERVAL'] 
-SIMILAR_STATE_VECTORS_LIMIT = config['DEFAULT']['SIMILAR_STATE_VECTORS_LIMIT'] 
-BOUNDING_BOX_EXTENSION = config['DEFAULT']['BOUNDING_BOX_EXTENSION']
+SLEEP_TIME_GET_FLIGHT = config['DEFAULT']['SLEEP_TIME_GET_FLIGHT'] # SECONDS
+SLEEP_TIME_SEARCH_FLIGHT = config['DEFAULT']['SLEEP_TIME_SEARCH_FLIGHT'] # SECONDS
+ITERATIONS_LIMIT = config['DEFAULT']['ITERATIONS_LIMIT'] # INTEGER
+FLIGHT_PATH_PARTITION_INTERVAL = config['DEFAULT']['FLIGHT_PATH_PARTITION_INTERVAL'] # DEGRES 
+CRUISING_VERTICAL_RATE = config['DEFAULT']['CRUISING_VERTICAL_RATE'] # METERS / SECOND
 
 
 @contextmanager
@@ -154,8 +153,16 @@ def filter_cruising_flight_locations(flight):
     '''Filter only flight locations in cruising speed.'''
     flight_locations = []
 
-    def check_cruising_flight_location(prev, curr): # also check other attributes
-        return prev and prev.altitude == curr.altitude
+    # def check_cruising_flight_location(prev, curr): # VERY STRICT
+    #     return prev and prev.altitude == curr.altitude
+
+    def check_cruising_flight_location(prev, curr):
+        if not prev:
+            return False
+        vertical_rate = (
+            (float(curr.altitude) - float(prev.altitude))
+            / (from_datetime_to_timestamp(curr.timestamp) - from_datetime_to_timestamp(prev.timestamp)))
+        return abs(vertical_rate) <= CRUISING_VERTICAL_RATE
 
     prev = None
     for curr in flight.flight_locations:
