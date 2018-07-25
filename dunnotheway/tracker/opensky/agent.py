@@ -8,10 +8,10 @@ from sqlalchemy import literal
 
 from tracker.common.plot import create_report
 from tracker.common.settings import (CRUISING_VERTICAL_RATE,
-                             FLIGHT_PATH_PARTITION_INTERVAL, ITERATIONS_LIMIT,
-                             OPEN_SKY_URL, SLEEP_TIME_GET_FLIGHT,
-                             SLEEP_TIME_SEARCH_FLIGHT)
-from tracker.common.settings import logger, open_database_session
+                                     FLIGHT_PATH_PARTITION_INTERVAL,
+                                     ITERATIONS_LIMIT, SLEEP_TIME_GET_FLIGHT,
+                                     SLEEP_TIME_SEARCH_FLIGHT, logger,
+                                     open_database_session)
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
 from tracker.models.airport import Airport
@@ -19,45 +19,13 @@ from tracker.models.flight import Flight
 from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
 
+from .api import (get_flight_address_from_callsign, get_states,
+                  get_states_from_addresses, get_states_from_bounding_box)
 from .state_vector import StateVector
 
 # global variables
 session = None
 
-def get_flight_address_from_callsign(callsign):
-    '''Return flight ICAO24 address from callsign'''
-    for state in get_states():
-        if get_state_callsign(state) == callsign:
-            return get_state_address(state)
-    return None
-
-def get_states():
-    '''Return current state-vectors'''
-    r = requests.get(OPEN_SKY_URL)
-    states = StateVector.build_from_dict(r.json())
-    valid_states = [state for state in states if check_valid_state(state)]
-    return valid_states
-
-def get_states_from_bounding_box(bbox):
-    '''Return current state-vectors within bounding box'''
-    lamin, lamax, lomin, lomax = bbox
-    payload = dict(lamin=lamin, lamax=lamax, lomin=lomin, lomax=lomax)
-    r = requests.get(OPEN_SKY_URL, params=payload)
-    states = StateVector.build_from_dict(r.json())
-    valid_states = [state for state in states if check_valid_state(state)]
-    return valid_states
-
-def get_states_from_addresses(addresses):
-    '''Return state-vectors of flights flying from a list of addresses or a single address'''
-    if not addresses: # empty list
-        return []
-    payload = dict(icao24=addresses)
-    r = requests.get(OPEN_SKY_URL, params=payload)
-    states = StateVector.build_from_dict(r.json())
-    valid_states = [state for state in states if check_valid_state(state)]
-    logger.debug('State-Vectors found from addresses {0}: {1}'.format(
-        addresses, valid_states))
-    return valid_states
 
 def get_callsigns_from_airports(departure_airport, destination_airport):
     '''Return callsigns of flights flying from departure airport to destination airport'''
@@ -66,37 +34,6 @@ def get_callsigns_from_airports(departure_airport, destination_airport):
         .all()) 
     callsigns = {fp.callsign for fp in flightplans}
     return callsigns
-
-def get_bounding_box_from_airports(departure_airport, destination_airport):
-    '''Return bounding box from departure airport to destination airport 
-    (min latitude, max latitude, min longitude, max longitude)'''
-    bbox = (
-        float(min(departure_airport.latitude, destination_airport.latitude)), 
-        float(max(departure_airport.latitude, destination_airport.latitude)),
-        float(min(departure_airport.longitude, destination_airport.longitude)), 
-        float(max(departure_airport.longitude, destination_airport.longitude))
-    )
-    logger.debug('Select bounding box {0} from departure airport {1!r} to destination airport {2!r}'.format(
-        bbox, departure_airport, destination_airport))
-    return bbox
-
-def check_valid_state(state):
-    '''Check if vector-state is valid'''
-    return (
-        state.time_position and
-        state.longitude and 
-        state.latitude and 
-        state.velocity and 
-        state.baro_altitude
-    )
-
-def get_state_address(state):
-    '''Return state-vector flight ICAO24 address'''
-    return state.icao24 # flight identifier
-
-def get_state_callsign(state):
-    '''Return state-vector flight callsign'''
-    return state.callsign.strip()
 
 def save_flight(flight):
     '''Save flight information in database'''
@@ -343,12 +280,12 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
     '''Return flight ICAO24 addresses from departure airport to destination airport'''
     addresses = []
     callsigns = get_callsigns_from_airports(departure_airport, destination_airport)
-    bbox = get_bounding_box_from_airports(departure_airport, destination_airport)
+    bbox = Airport.get_bounding_box_from_airports(departure_airport, destination_airport)
     states = get_states_from_bounding_box(bbox)
     
     for state in states:
-        if get_state_callsign(state) in callsigns:
-            addresses.append(get_state_address(state))
+        if state.callsign in callsigns:
+            addresses.append(state.address)
     
     logger.debug('Flight addresses found from {0!r} to {1!r}: {2}'.format(
         departure_airport, destination_airport, addresses))
@@ -380,7 +317,7 @@ def update_current_flights(address_to_flight, addresses):
     logger.info('Update current flights: {0}'.format(addresses))
 
     for state in get_states_from_addresses(addresses):
-        address = get_state_address(state)
+        address = state.address
         if address not in address_to_flight:
             new_flight = get_flight_from_state(state)
             address_to_flight[address] = new_flight
@@ -428,7 +365,7 @@ def should_partition_by_longitude(flight_plan):
 def get_airplane_from_state(state):
     '''Return airplane object from state-vector if the airplane is in database.
     Otherwise, create and return new airplane object.'''
-    icao_code = get_state_address(state)
+    icao_code = state.address
     q = session.query(Airplane).filter(Airplane.icao_code == icao_code)
     if session.query(literal(True)).filter(q.exists()).scalar():
         airplane = q.first()
@@ -441,7 +378,7 @@ def get_airplane_from_state(state):
 
 def get_airline_from_state(state):
     '''Return airline associated with state-vector'''
-    callsign = get_state_callsign(state)
+    callsign = state.callsign
     return get_airline_from_callsign(callsign)
 
 def get_airline_from_callsign(callsign):
@@ -457,6 +394,5 @@ def split_callsign(callsign):
 
 def get_flight_plan_from_state(state):
     '''Return flight plan information from state-vector'''
-    callsign = get_state_callsign(state)
-    flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == callsign).first()
+    flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == state.callsign).first()
     return flight_plan

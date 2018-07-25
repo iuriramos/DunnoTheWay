@@ -6,6 +6,7 @@ from .settings import logger
 SIZES = [200, 300, 400, 500, 600]
 COLORS = ['red', 'blue', 'green', 'black']
 
+
 def plot_flight_section(section):
     '''Plot flight section (set of flight locations)'''
 

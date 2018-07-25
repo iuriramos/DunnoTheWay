@@ -6,7 +6,7 @@ class StateVector:
                 vertical_rate, sensors, baro_altitude, squawk, spi, position_source):
         '''Initialize State-Vector object'''
         self.icao24 = icao24
-        self.callsign = callsign
+        self._callsign = callsign
         self.origin_country = origin_country
         self.time_position = time_position
         self.last_contact = last_contact
@@ -32,3 +32,23 @@ class StateVector:
             state_vector = StateVector(*args)
             state_vectors.append(state_vector)
         return state_vectors
+
+    def check_valid_state(self):
+        '''Check if vector-state is valid'''
+        return (
+            self.time_position and
+            self.longitude and 
+            self.latitude and 
+            self.velocity and 
+            self.baro_altitude
+        )
+
+    @property
+    def address(self):
+        '''Return state-vector flight ICAO24 address'''
+        return self.icao24 # flight identifier
+
+    @property
+    def callsign(self):
+        '''Return state-vector flight callsign'''
+        return self._callsign.strip()

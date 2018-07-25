@@ -21,3 +21,17 @@ class Airport(Base):
         
     def __repr__(self):
         return 'Airport({code})'.format(code=self.code)
+
+    @staticmethod
+    def get_bounding_box_from_airports(departure_airport, destination_airport):
+        '''Return bounding box from departure airport to destination airport 
+        (min latitude, max latitude, min longitude, max longitude)'''
+        bbox = (
+            float(min(departure_airport.latitude, destination_airport.latitude)), 
+            float(max(departure_airport.latitude, destination_airport.latitude)),
+            float(min(departure_airport.longitude, destination_airport.longitude)), 
+            float(max(departure_airport.longitude, destination_airport.longitude))
+        )
+        # logger.debug('Select bounding box {0} from departure airport {1!r} to destination airport {2!r}'.format(
+        #     bbox, departure_airport, destination_airport))
+        return bbox
