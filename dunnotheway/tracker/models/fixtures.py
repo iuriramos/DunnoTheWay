@@ -1,7 +1,8 @@
 from datetime import date
 from sqlalchemy import inspect
 
-from tracker.models.base import Session, engine, Base
+from tracker.common.settings import Session, engine
+from tracker.models.base import Base
 from tracker.models.airline import Airline
 from tracker.models.airport import Airport
 from tracker.models.airplane import Airplane

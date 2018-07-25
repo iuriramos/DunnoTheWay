@@ -1,46 +1,28 @@
-import os
-import time 
 import json
+import os
+import time
+from datetime import datetime
+
 import requests
 from sqlalchemy import literal
-from contextlib import contextmanager
-from datetime import datetime
-import matplotlib.pyplot as plt 
 
-from common.settings import BASE_DIR
-from tracker.common.settings import logger
-from tracker.models.airport import Airport
+from tracker.common.plot import create_report
+from tracker.common.settings import (CRUISING_VERTICAL_RATE,
+                             FLIGHT_PATH_PARTITION_INTERVAL, ITERATIONS_LIMIT,
+                             OPEN_SKY_URL, SLEEP_TIME_GET_FLIGHT,
+                             SLEEP_TIME_SEARCH_FLIGHT)
+from tracker.common.settings import logger, open_database_session
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
+from tracker.models.airport import Airport
 from tracker.models.flight import Flight
-from tracker.models.flight_plan import FlightPlan
 from tracker.models.flight_location import FlightLocation
-from tracker.models.base import Session
+from tracker.models.flight_plan import FlightPlan
 
 from .state_vector import StateVector
 
-# load config file
-CONFIG_PATH = os.path.join(BASE_DIR, 'tracker', 'common', 'config.json')
-with open(CONFIG_PATH) as f:
-    config = json.load(f)
-
-# config variables
-OPEN_SKY_URL = 'https://opensky-network.org/api/states/all'
-SLEEP_TIME_GET_FLIGHT = config['DEFAULT']['SLEEP_TIME_GET_FLIGHT'] # SECONDS
-SLEEP_TIME_SEARCH_FLIGHT = config['DEFAULT']['SLEEP_TIME_SEARCH_FLIGHT'] # SECONDS
-ITERATIONS_LIMIT = config['DEFAULT']['ITERATIONS_LIMIT'] # INTEGER
-FLIGHT_PATH_PARTITION_INTERVAL = config['DEFAULT']['FLIGHT_PATH_PARTITION_INTERVAL'] # DEGRES 
-CRUISING_VERTICAL_RATE = config['DEFAULT']['CRUISING_VERTICAL_RATE'] # METERS / SECOND
-
-
-@contextmanager
-def open_database_session():
-    '''Contexto manager to handle session related to db'''
-    global session
-    session = Session()
-    yield
-    session.close()
-
+# global variables
+session = None
 
 def get_flight_address_from_callsign(callsign):
     '''Return flight ICAO24 address from callsign'''
@@ -126,7 +108,7 @@ def normalize_flight_locations(flight):
     '''Normalize flight locations information.'''
     logger.info('Normalize flight locations of flight {0!r}'.format(flight))
     filter_duplicated_flight_locations(flight)
-    filter_cruising_flight_locations(flight)
+    # filter_cruising_flight_locations(flight)
     fixed_points = get_flight_trajectory_fixed_points(flight)
     filter_fixed_points_flight_locations(flight, fixed_points)
 
@@ -200,7 +182,7 @@ def filter_fixed_points_flight_locations(flight, fixed_points):
             fixed_flight_locations.append(fixed_flight_location)
     
     logger.debug('Reduce {0} flight locations to {1} fixed flight locations'.format(
-        len(flight.flight_locations), len(fixed_flight_locations)))
+        len(flight_locations), len(fixed_flight_locations)))
     flight.flight_locations = fixed_flight_locations
 
 def check_mid_point_before_location(mid_point, location, longitude_based, follow_increasing_order):
@@ -242,7 +224,8 @@ def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude
         alpha = (mid_point-start_interval)/(end_interval-start_interval) # DivisionByZeroError not possible 
         longitude = find_mid_value(alpha, float(prev_location.longitude), float(curr_location.longitude))
     
-    # speed and timestamp operations
+    # altitude, speed and timestamp operations
+    altitude = find_mid_value(alpha, float(prev_location.altitude), float(curr_location.altitude))
     speed = find_mid_value(alpha, float(prev_location.speed), float(curr_location.speed))
     timestamp = from_timestamp_to_datetime(
         find_mid_value(alpha, 
@@ -256,7 +239,7 @@ def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude
         longitude=longitude,
         latitude=latitude,
         speed=speed,
-        altitude=prev_location.altitude,
+        altitude=altitude,
         flight=prev_location.flight
     )
 
@@ -294,69 +277,16 @@ def get_flight_trajectory_fixed_points(flight):
     partitions = split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
     return partitions if follow_increasing_order else partitions[::-1]
 
-# check assumptions in a visual way
-def create_report(flight): 
-    '''Create report from flight (flight location, speed, vertical_rate)'''
-    logger.info('Create report for flight {0!r}'.format(flight))
-    draw_flight_path(flight)    
-    draw_flight_location_params(flight)
-
-def draw_flight_path(flight):
-    '''Draw flight locations (longitude, latitude) path from departure airport to destination airport'''
-    flight_locations = flight.flight_locations
-    longitudes = [float(flight_location.longitude) for flight_location in flight_locations]
-    latitudes = [float(flight_location.latitude) for flight_location in flight_locations]
-    _, axes = plt.subplots()
-    
-    # draw flight path
-    axes.scatter(longitudes, latitudes)
-    axes.set_title('Longitudes vs Latitudes')
-    axes.set_xlabel('Longitude')
-    axes.set_ylabel('Latitude')
-
-    filepath = get_reports_filepath(flight) + '_path.pdf'
-    plt.savefig(filepath)
-
-def draw_flight_location_params(flight):
-    '''Draw flight locations parameters'''
-    flight_locations = flight.flight_locations
-    _, axes = plt.subplots(nrows=2, ncols=1)
-    axis_altitude, axis_speed = axes
-
-    # draw flight location params
-    draw_flight_location_altitudes(flight_locations, axis_altitude)
-    draw_flight_location_speeds(flight_locations, axis_speed)
-    
-    filepath = get_reports_filepath(flight) + '_params.pdf'
-    plt.savefig(filepath)
-
-def get_reports_filepath(flight):
-    '''Return file path of the flight report'''
-    REPORTS_DIR = os.path.join(BASE_DIR, 'tracker', 'reports')
-    subdir_name = flight.flight_plan.departure_airport.code + '-' + flight.flight_plan.destination_airport.code
-    REPORTS_SUBDIR = os.path.join(REPORTS_DIR, subdir_name)
-    if not os.path.exists(REPORTS_SUBDIR):
-        os.makedirs(REPORTS_SUBDIR)
-    filename = str(flight.id)
-    return os.path.join(REPORTS_SUBDIR, filename)
-
-def draw_flight_location_speeds(flight_locations, axis):
-    speeds = [float(flight_location.speed) for flight_location in flight_locations]
-    axis.plot(speeds)
-    axis.set_title('Cruising Speed')
-
-def draw_flight_location_altitudes(flight_locations, axis):
-    altitudes = [float(flight_location.altitude) for flight_location in flight_locations]
-    axis.plot(altitudes)
-    axis.set_title('Barometric Altitudes')
 
 def track_flight_from_callsign(callsign):
     '''Keep track of flight information from its callsign'''
+    global session
+
     if not get_flight_plan_from_callsign(callsign):
         return
     address_to_flight = {}
     count_iterations = 0
-    with open_database_session():
+    with open_database_session() as session:
         while count_iterations < ITERATIONS_LIMIT:
             # time.sleep(SLEEP_TIME_GET_FLIGHT)
             address = get_flight_address_from_callsign(callsign)
@@ -370,6 +300,8 @@ def get_flight_plan_from_callsign(callsign):
 
 def track_flights_from_airports(departure_airport_code, destination_airport_code, round_trip_mode=False):
     '''Keep track of current flights information from departure airport to destination airport'''
+    global session 
+
     logger.info('Track flight addresses from {0} to {1} in {2} mode'.format(
         departure_airport_code, destination_airport_code, 'round trip' if round_trip_mode else 'one way'))
     
@@ -380,7 +312,7 @@ def track_flights_from_airports(departure_airport_code, destination_airport_code
         times = SLEEP_TIME_SEARCH_FLIGHT//SLEEP_TIME_GET_FLIGHT
         return count_iterations % times == 0
 
-    with open_database_session():
+    with open_database_session() as session:
         departure_airport = get_airport_from_airport_code(departure_airport_code)
         destination_airport = get_airport_from_airport_code(destination_airport_code)
     
@@ -528,4 +460,3 @@ def get_flight_plan_from_state(state):
     callsign = get_state_callsign(state)
     flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == callsign).first()
     return flight_plan
-
