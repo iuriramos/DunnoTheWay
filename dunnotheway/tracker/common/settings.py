@@ -7,14 +7,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from common.settings import BASE_DIR
-from common import settings
+from common import utils
 
 # DunnoTheWay environment variables
-POSTGRES_DATABASE_USER = settings.get_env_variable('DUNNO_POSTGRES_DATABASE_USER')
-POSTGRES_DATABASE_PASSWORD = settings.get_env_variable('DUNNO_POSTGRES_DATABASE_PASSWORD')
-POSTGRES_DATABASE_HOST = settings.get_env_variable('DUNNO_POSTGRES_DATABASE_HOST')
-POSTGRES_DATABASE_PORT = settings.get_env_variable('DUNNO_POSTGRES_DATABASE_PORT')
-POSTGRES_DATABASE_NAME = settings.get_env_variable('DUNNO_POSTGRES_DATABASE_NAME')
+POSTGRES_DATABASE_USER = utils.get_env_variable('DUNNO_POSTGRES_DATABASE_USER')
+POSTGRES_DATABASE_PASSWORD = utils.get_env_variable('DUNNO_POSTGRES_DATABASE_PASSWORD')
+POSTGRES_DATABASE_HOST = utils.get_env_variable('DUNNO_POSTGRES_DATABASE_HOST')
+POSTGRES_DATABASE_PORT = utils.get_env_variable('DUNNO_POSTGRES_DATABASE_PORT')
+POSTGRES_DATABASE_NAME = utils.get_env_variable('DUNNO_POSTGRES_DATABASE_NAME')
 
 # load config file
 CONFIG_PATH = os.path.join(BASE_DIR, 'tracker', 'common', 'config.json')
@@ -45,7 +45,7 @@ logger = logging.getLogger()
 # database access
 def create_db_engine():
     '''Return tracker database engine'''
-    return settings.create_db_engine(
+    return utils.create_db_engine(
         POSTGRES_DATABASE_USER, 
         POSTGRES_DATABASE_PASSWORD, 
         POSTGRES_DATABASE_HOST, 

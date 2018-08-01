@@ -1,7 +1,10 @@
-from collections import namedtuple
-# from collections import Counter ### object should be hashable
+from collections import defaultdict, namedtuple
+
+from hdbscan import HDBSCAN
+import numpy as np
 from sklearn.cluster import DBSCAN
 
+from common.utils import distance_three_dimensions_coordinates
 from tracker.common.settings import open_database_session
 from tracker.models.airport import Airport
 from tracker.models.flight import Flight
@@ -36,8 +39,10 @@ def build_airways_from_airports(departure_airport_code, destination_airport_code
         for flight_locations in flight_locations_groups:
             records = get_flight_locations_records(flight_locations)
             labels = find_labels_from_records(records) 
-            # save_centroids(centroids) 
-            create_report(records, labels=labels)
+            centroids = find_centroids(records, labels) 
+            # then save centroids in database
+            create_report(records, labels, centroids)
+
 
 def get_flight_locations_records(flight_locations):
     '''Return flight locations records (longitude, latitude, altitude)'''
@@ -47,25 +52,43 @@ def get_flight_locations_records(flight_locations):
 def find_labels_from_records(records):
     '''Find labels from records (set of flight locations)'''
     records.sort(key=lambda x: x.altitude) # trick, stay tuned!
-
-    def distance_between_records(this, that):
-        this, that = Record(*this), Record(*that)
-        return abs(this.altitude-that.altitude)
-
-    clf = DBSCAN(
-        eps=DBSCAN_MAXIMUM_DISTANCE, 
-        min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
+    # clf = DBSCAN(
+    #     eps=DBSCAN_MAXIMUM_DISTANCE, 
+    #     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
+    #     metric=distance_between_records)
+    clf = HDBSCAN(
+        min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
         metric=distance_between_records)
     clf.fit(records)
     return clf.labels_
 
-def save_centroids(centroids):
-    '''Save centroids in database including their created timestamp'''
-    pass
+def distance_between_records(this, that):
+    '''Define distance between two records'''
+    this, that = Record(*this), Record(*that)
+    this_polar_coordinate = this.latitude, this.longitude, this.altitude
+    that_polar_coordinate = that.latitude, that.longitude, that.altitude
+    return distance_three_dimensions_coordinates(this_polar_coordinate, that_polar_coordinate)
 
-def create_report(records, labels):
+def find_centroids(records, labels):
+    '''Find centroids from records and labels'''
+    centroids_map = defaultdict(list)
+    for record, label in zip(records, labels):
+        centroids_map[label].append(record)
+    centroids = [
+        get_centroid_from_records(recs) 
+        for label, recs in sorted(centroids_map.items())[1:]] # skip outliers, label=-1
+    return centroids
+
+def get_centroid_from_records(recs):
+    '''Return centroid from records'''
+    longitude = np.mean([rec.longitude for rec in recs])
+    latitude = np.mean([rec.latitude for rec in recs])
+    altitude = np.mean([rec.altitude for rec in recs])
+    return Record(longitude, latitude, altitude)
+
+def create_report(records, labels, centroids):
     '''Create report with records and labels'''
-    plot_flight_records(records, labels)  
+    plot_flight_records(records, labels, centroids)  
 
 def get_flight_locations_from_airports(departure_airport, destination_airport):
     '''Return registered flight locations from departure airport to destination airport'''
