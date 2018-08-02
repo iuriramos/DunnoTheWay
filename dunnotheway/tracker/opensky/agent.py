@@ -3,7 +3,6 @@ import os
 import time
 from datetime import datetime
 
-import requests
 from sqlalchemy import literal
 
 from tracker.common.plot import create_report
