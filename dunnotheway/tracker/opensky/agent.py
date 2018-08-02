@@ -7,10 +7,10 @@ import requests
 from sqlalchemy import literal
 
 from tracker.common.plot import create_report
-from tracker.common.settings import (CRUISING_VERTICAL_RATE,
-                                     FLIGHT_PATH_PARTITION_INTERVAL,
-                                     ITERATIONS_LIMIT, SLEEP_TIME_GET_FLIGHT,
-                                     SLEEP_TIME_SEARCH_FLIGHT, logger,
+from tracker.common.settings import (CRUISING_VERTICAL_RATE_IN_MS,
+                                     FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
+                                     ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS, SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
+                                     SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS, logger,
                                      open_database_session)
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
@@ -81,7 +81,7 @@ def filter_cruising_flight_locations(flight):
         vertical_rate = (
             (float(curr.altitude) - float(prev.altitude))
             / (from_datetime_to_timestamp(curr.timestamp) - from_datetime_to_timestamp(prev.timestamp)))
-        return abs(vertical_rate) <= CRUISING_VERTICAL_RATE
+        return abs(vertical_rate) <= CRUISING_VERTICAL_RATE_IN_MS
 
     prev = None
     for curr in flight.flight_locations:
@@ -224,8 +224,8 @@ def track_flight_from_callsign(callsign):
     address_to_flight = {}
     count_iterations = 0
     with open_database_session() as session:
-        while count_iterations < ITERATIONS_LIMIT:
-            # time.sleep(SLEEP_TIME_GET_FLIGHT)
+        while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
+            # time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             address = get_flight_address_from_callsign(callsign)
             update_flights(address_to_flight, addresses=[address])
             count_iterations += 1
@@ -246,15 +246,15 @@ def track_flights_from_airports(departure_airport_code, destination_airport_code
     count_iterations = 0
     
     def should_update_flight_addresses(count_iterations):
-        times = SLEEP_TIME_SEARCH_FLIGHT//SLEEP_TIME_GET_FLIGHT
+        times = SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS//SLEEP_TIME_TO_GET_FLIGHT_IN_SECS
         return count_iterations % times == 0
 
     with open_database_session() as session:
         departure_airport = get_airport_from_airport_code(departure_airport_code)
         destination_airport = get_airport_from_airport_code(destination_airport_code)
     
-        while count_iterations < ITERATIONS_LIMIT:
-            time.sleep(SLEEP_TIME_GET_FLIGHT)
+        while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
+            time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if should_update_flight_addresses(count_iterations):
                 addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
             update_flights(address_to_flight, addresses)
@@ -347,7 +347,7 @@ def get_flight_from_state(state):
     flight = Flight (
         airplane=airplane,
         flight_plan=flight_plan,
-        partition_interval=FLIGHT_PATH_PARTITION_INTERVAL,
+        partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
         longitude_based=longitude_based
     )
 
