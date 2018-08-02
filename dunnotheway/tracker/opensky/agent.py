@@ -9,8 +9,8 @@ from tracker.common.plot import create_report
 from tracker.common.settings import (CRUISING_VERTICAL_RATE_IN_MS,
                                      FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
                                      ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS, SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
-                                     SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS, logger,
-                                     open_database_session)
+                                     SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS, MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
+                                     logger, open_database_session)
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
 from tracker.models.airport import Airport
@@ -300,13 +300,13 @@ def update_finished_flights(address_to_flight, addresses):
     old_addresses = address_to_flight.keys() - addresses
     logger.info('Update finished flights (addresses): {0}'.format(old_addresses))
 
-    def has_flight_locations(flight):
-        return flight.flight_locations
+    def has_enough_flight_locations(flight):
+        return len(flight.flight_locations) >= MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS
 
     for address in old_addresses:
         flight = address_to_flight[address]
         normalize_flight_locations(flight)
-        if has_flight_locations(flight):
+        if has_enough_flight_locations(flight):
             save_flight(flight) # save flight locations as well
             create_report(flight) # create report if flag is set to True
         del address_to_flight[address]
