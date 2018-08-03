@@ -51,8 +51,12 @@ def request_open_sky_api(payload=None, iterations=0):
     try:
         return requests.get(OPEN_SKY_URL, params=payload if payload else {})
     except requests.exceptions.RequestException as exception:
-        time.sleep(SLEEP_TIME_TO_RETRY_NEW_CONNECTION_IN_SECS)
-        if iterations >= ITERATIONS_LIMIT_TO_RETRY_NEW_CONNECTION:
-            raise exception
+        handle_request_exception(exception, iterations)
         iterations += 1
     return request_open_sky_api(payload, iterations) 
+    
+def handle_request_exception(exception, iterations):
+    time.sleep(SLEEP_TIME_TO_RETRY_NEW_CONNECTION_IN_SECS)
+    if iterations >= ITERATIONS_LIMIT_TO_RETRY_NEW_CONNECTION:
+        raise exception
+    
