@@ -10,13 +10,15 @@ class Airport(Base):
     name = Column(String, nullable=False)
     latitude = Column(Numeric, nullable=False)
     longitude = Column(Numeric, nullable=False)
+    altitude = Column(Numeric, nullable=False)
     country = Column(String)
 
-    def __init__(self, code, name, latitude, longitude, country):
+    def __init__(self, code, name, latitude, longitude, altitude, country):
         self.code = code
         self.name = name
         self.latitude = latitude
         self.longitude = longitude
+        self.altitude = altitude
         self.country = country
         
     def __repr__(self):
