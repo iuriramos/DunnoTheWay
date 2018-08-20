@@ -30,10 +30,10 @@ def setup_environment():
     azul_airline = Airline('AZU', 'Azul Linhas Aéreas Brasileiras', 'Brazil')
 
     # create airports
-    BSB_airport = Airport('BSB', 'Brasília International Airport', -15.869, -47.918, 1060, 'Brazil')
-    GRU_airport = Airport('GRU', 'São Paulo-Guarulhos International Airport', -23.426, -46.468, 750, 'Brazil')
-    SDU_airport = Airport('SDU', 'Santos Dumont Airport', -22.906,  -43.158, 3, 'Brazil')
-    CGH_airport = Airport('CGH', 'São Paulo-Congonhas Airport', -23.623, -46.652, 802, 'Brazil')
+    BSB_airport = Airport('BSB', 'SBBR', 'Brasília International Airport', -15.869, -47.918, 1060, 'Brazil')
+    GRU_airport = Airport('GRU', 'SBGR', 'São Paulo-Guarulhos International Airport', -23.426, -46.468, 750, 'Brazil')
+    SDU_airport = Airport('SDU', 'SBRJ', 'Santos Dumont Airport', -22.906,  -43.158, 3, 'Brazil')
+    CGH_airport = Airport('CGH', 'SBSP', 'São Paulo-Congonhas Airport', -23.623, -46.652, 802, 'Brazil')
 
     # create flight plans (GRU >> BSB)
     azul_2925 = FlightPlan('AZUL2925', GRU_airport, BSB_airport)
