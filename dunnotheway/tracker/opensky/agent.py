@@ -261,7 +261,7 @@ def track_flights_from_airports(departure_airport_code, destination_airport_code
 
 def get_airport_from_airport_code(airport_code):
     '''Return airport from airport code'''
-    airport = session.query(Airport).filter(Airport.code == airport_code).first()
+    airport = session.query(Airport).filter(Airport.icao_code == airport_code).first()
     return airport
 
 def update_flight_addresses(departure_airport, destination_airport, round_trip_mode):
