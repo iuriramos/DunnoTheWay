@@ -6,25 +6,25 @@ class Airport(Base):
     __tablename__ = 'airports'
 
     id = Column(Integer, primary_key=True)
-    iata_code = Column(String(3), unique=True, nullable=False) # IATA airport code / location identifier
     icao_code = Column(String(4), unique=True, nullable=False) # ICAO airport code / location identifier
+    iata_code = Column(String(3)) # IATA airport code / location identifier
     name = Column(String, nullable=False)
     latitude = Column(Numeric, nullable=False)
     longitude = Column(Numeric, nullable=False)
-    altitude = Column(Numeric, nullable=False)
+    altitude = Column(Numeric)
     country = Column(String)
 
-    def __init__(self, iata_code, icao_code, name, latitude, longitude, altitude, country):
-        self.iata_code = iata_code
-        self.icao_code = icao_code
+    def __init__(self, icao_code, name, latitude, longitude, altitude=None, iata_code=None, country='Brazil'):
         self.name = name
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
+        self.icao_code = icao_code
+        self.iata_code = iata_code
         self.country = country
         
     def __repr__(self):
-        return 'Airport({iata_code})'.format(iata_code=self.iata_code)
+        return 'Airport({icao_code})'.format(icao_code=self.icao_code)
 
     @staticmethod
     def get_bounding_box_from_airports(departure_airport, destination_airport):

@@ -160,5 +160,5 @@ def get_flight_locations_from_flight_plan(flight_plan):
 # DUPLICATED CODE - REFACTOR
 def get_airport_from_airport_code(airport_code):
     '''Return airport from airport code'''
-    airport = session.query(Airport).filter(Airport.code == airport_code).first()
+    airport = session.query(Airport).filter(Airport.icao_code == airport_code).first()
     return airport
