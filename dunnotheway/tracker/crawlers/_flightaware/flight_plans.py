@@ -87,7 +87,7 @@ def get_departure_airport_urls(airport):
         offset += OFFSET_STEP
 
 def has_flight_plan_data_in_html_page(html_page):
-    return not html_page.find_all('td', class_='smallrow1')
+    return html_page.find_all('td', class_='smallrow1')
 
 def get_callsign_table(html_page):
     return html_page.find('table', class_='prettyTable')
@@ -134,7 +134,7 @@ def get_all_airports():
 
 def get_html_page_of_url(url):
     r = requests.get(url)
-    return BeautifulSoup(r.text) 
+    return BeautifulSoup(r.text, 'html.parser') 
 
 
 if __name__ == '__main__':
