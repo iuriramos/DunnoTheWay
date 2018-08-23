@@ -3,6 +3,7 @@ sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
 import re
 import requests
+from sqlalchemy import literal
 from bs4 import BeautifulSoup
 
 from tracker.common.settings import open_database_session
@@ -66,12 +67,12 @@ def get_departure_airport_html_pages(airport):
         yield html_page
 
 def get_flight_plans_data_from_html_page(html_page):
-    table = get_callsign_table(html_page)
-    table_rows = get_callsign_table_rows(table)
+    table = get_flight_plan_data_table(html_page)
+    table_rows = get_flight_plan_data_table_rows(table)
     flight_plans_data = []
     for row in table_rows:
-        flight_plan_data = get_callsign_from_table_row(row)
-        if has_flight_plan_data_valid_airline(flight_plan_data):
+        flight_plan_data = get_flight_plan_data_from_table_row(row)
+        if is_flight_plan_data_valid(flight_plan_data):
             insert_departure_airport_in_flight_plan_data(flight_plan_data, table)
             flight_plans_data.append(flight_plan_data)
     return flight_plans_data
@@ -89,22 +90,22 @@ def get_departure_airport_urls(airport):
 def has_flight_plan_data_in_html_page(html_page):
     return html_page.find_all('td', class_='smallrow1')
 
-def get_callsign_table(html_page):
+def get_flight_plan_data_table(html_page):
     return html_page.find('table', class_='prettyTable')
 
-def get_callsign_table_rows(table):
-    return table.tbody.contents
+def get_flight_plan_data_table_rows(table):
+    return table.contents[1:] # skip the first element thead
 
-def get_callsign_from_table_row(row):
+def get_flight_plan_data_from_table_row(row):
     iterator = row.children
     callsign_tag = next(iterator)
     _ = next(iterator)
     destination_airport_tag = next(iterator)
     destination_airport = get_destination_airport_from_table_col(destination_airport_tag)
-    callsign = {
-        'callsign': callsign_tag.string,
+    flight_plan_data = {
+        'callsign': callsign_tag.span.string,
         'destination_airport': destination_airport}
-    return callsign
+    return flight_plan_data
 
 def insert_departure_airport_in_flight_plan_data(flight_plan_data, table):
     departure_airport = get_departure_airport_from_table(table)
@@ -122,12 +123,22 @@ def get_destination_airport_from_table_col(destination_airport_tag):
     _, destination_airport = destination_airport_tag_string.split('/')
     return destination_airport.strip()
 
-def has_flight_plan_data_valid_airline(flight_plan_data):
+def is_flight_plan_data_valid(flight_plan_data):
+    return (has_flight_plan_data_valid_callsign(flight_plan_data) and
+            has_flight_plan_data_valid_destination_airport(flight_plan_data))
+    
+def has_flight_plan_data_valid_callsign(flight_plan_data):
     callsign = flight_plan_data['callsign']
     with open_database_session() as session:
         airlines = session.query(Airline).all()
-        return any(callsign.startswith(airline.icao_code) for airline in airlines)    
-
+        return any(callsign.startswith(airline.icao_code) for airline in airlines)   
+    
+def has_flight_plan_data_valid_destination_airport(flight_plan_data):
+    icao_code = flight_plan_data['destination_airport']
+    with open_database_session() as session:
+        q = session.query(Airport).filter(Airport.icao_code == icao_code)
+        return session.query(literal(True)).filter(q.exists()).scalar()
+        
 def get_all_airports():
     with open_database_session() as session:
         return session.query(Airport).all()
