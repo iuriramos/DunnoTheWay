@@ -32,6 +32,12 @@ def fetch_flight_plans():
     insert_flight_plans_in_database(flight_plans)
 
 def remove_invalid_flight_plans_data(data):
+    '''
+    Remove invalid flight plans data, which is 
+    
+    1. data having departure airport equals to destination airport;
+    2. callsigns not represing repetitive flights (should be more than 5 flights).
+    '''
     MIN_COUNT = 5
 
     class DataWithCount:
