@@ -8,12 +8,15 @@ import requests
 from sqlalchemy import literal
 from bs4 import BeautifulSoup
 
+from common.settings import BASE_DIR
 from tracker.common.settings import open_database_session
 from tracker.models.airline import Airline
 from tracker.models.airport import Airport
 from tracker.models.flight_plan import FlightPlan
 
 DATA_TMP_FILE_NAME = 'data.tmp'
+DATA_TMP_FILE_PATH = os.path.join(BASE_DIR, 'tracker', 'crawlers', '_flightaware', DATA_TMP_FILE_NAME)
+
 
 def fetch_flight_plans():
     # fetch flight plans data
@@ -92,7 +95,7 @@ def insert_flight_plans_in_database(flight_plans):
                 session.commit()
 
 def fetch_flight_plans_data():
-    if os.path.exists(DATA_TMP_FILE_NAME):
+    if os.path.exists(DATA_TMP_FILE_PATH):
         return read_flight_plans_data_from_file()
     
     data = []
@@ -104,11 +107,11 @@ def fetch_flight_plans_data():
     return data
 
 def read_flight_plans_data_from_file():
-    with open(DATA_TMP_FILE_NAME) as f:
+    with open(DATA_TMP_FILE_PATH) as f:
         return json.load(f)
 
 def write_flight_plans_data_to_file(data):
-    with open(DATA_TMP_FILE_NAME, 'w') as f:
+    with open(DATA_TMP_FILE_PATH, 'w') as f:
         json.dump(data, f, ensure_ascii=False)
 
 def fetch_flight_plans_html_pages():
