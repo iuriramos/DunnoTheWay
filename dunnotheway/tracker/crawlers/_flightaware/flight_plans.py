@@ -1,7 +1,9 @@
 import sys
 sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
+import os
 import re
+import json
 import requests
 from sqlalchemy import literal
 from bs4 import BeautifulSoup
@@ -11,16 +13,54 @@ from tracker.models.airline import Airline
 from tracker.models.airport import Airport
 from tracker.models.flight_plan import FlightPlan
 
+DATA_TMP_FILE_NAME = 'data.tmp'
 
 def fetch_flight_plans():
     # fetch flight plans data
     data = fetch_flight_plans_data()
+
+    # remove duplicate callsigns
+    data = remove_invalid_flight_plans_data(data)
     
-    # transform flight plans data into flight plans
+    # transform flight plans data into flight plan objects
     flight_plans = get_flight_plans_from_flight_plans_data(data)
 
     # insert flight plans into database
     insert_flight_plans_in_database(flight_plans)
+
+def remove_invalid_flight_plans_data(data):
+    MIN_COUNT = 5
+
+    class DataWithCount:
+        def __init__(self, data, count):
+            self.data, self.count = data, count
+
+    def similar_entries(this, that):
+        return (this['departure_airport'] == that['departure_airport'] and 
+                this['destination_airport'] == that['destination_airport'])
+
+    data = (entry for entry in data 
+            if entry['departure_airport'] != entry['destination_airport'])
+
+    unique = {} # callsign (hashable) >> DataWithCount(flight plan data, count)
+    visited = set() # callsigns (hashable)
+
+    for curr in data:
+        callsign = curr['callsign']
+        if callsign not in visited:
+            unique[callsign] = DataWithCount(curr, 1)
+            visited.add(callsign)
+        elif callsign in unique: # already visited
+            prev_data_with_count = unique[callsign]
+            if similar_entries(curr, prev_data_with_count.data):
+                prev_data_with_count.count += 1
+            else:
+                del unique[callsign]
+
+    return (data_with_count.data 
+            for data_with_count in unique.values() 
+            if data_with_count.count >= MIN_COUNT)
+
 
 def get_flight_plans_from_flight_plans_data(data):
     flight_plans = []
@@ -43,16 +83,33 @@ def get_airport_from_icao_code(icao_code):
 
 def insert_flight_plans_in_database(flight_plans):
     with open_database_session() as session:
-        for flight_plan in flight_plans:
-            session.add(flight_plan)
-        session.commit()
+        for i, flight_plan in enumerate(flight_plans):
+            q = session.query(FlightPlan).filter(
+                FlightPlan.callsign == flight_plan.callsign)
+            if (not session.query(literal(True))
+                    .filter(q.exists()).scalar()):
+                session.add(flight_plan)
+                session.commit()
 
 def fetch_flight_plans_data():
+    if os.path.exists(DATA_TMP_FILE_NAME):
+        return read_flight_plans_data_from_file()
+    
     data = []
     for html_page in fetch_flight_plans_html_pages():
         partial_data = get_flight_plans_data_from_html_page(html_page)
         data.extend(partial_data)
+
+    write_flight_plans_data_to_file(data)
     return data
+
+def read_flight_plans_data_from_file():
+    with open(DATA_TMP_FILE_NAME) as f:
+        return json.load(f)
+
+def write_flight_plans_data_to_file(data):
+    with open(DATA_TMP_FILE_NAME, 'w') as f:
+        json.dump(data, f, ensure_ascii=False)
 
 def fetch_flight_plans_html_pages():
     for departure_airport in get_all_airports():
@@ -120,7 +177,10 @@ def get_departure_airport_from_table(table):
     
 def get_destination_airport_from_table_col(destination_airport_tag):
     destination_airport_tag_string = destination_airport_tag.a.string
-    _, destination_airport = destination_airport_tag_string.split('/')
+    try:
+        _, destination_airport = destination_airport_tag_string.split('/')
+    except ValueError: # is not divided such as 'iata_code / icao_code'
+        destination_airport = ''
     return destination_airport.strip()
 
 def is_flight_plan_data_valid(flight_plan_data):
