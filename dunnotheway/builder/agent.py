@@ -12,6 +12,7 @@ from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
 
 from .plot import plot_flight_records
+from .normalizer import normalize_flight_locations
 from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
                        DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_GROUP,
                        NUMBER_GROUPS, logger)
@@ -95,7 +96,7 @@ def get_flight_locations_from_airports(departure_airport, destination_airport):
     flight_locations = []
     flight_plans = get_flight_plans_from_airports(departure_airport, destination_airport)
     for flight_plan in flight_plans:
-        flight_locations += get_flight_locations_from_flight_plan(flight_plan)
+        flight_locations += get_normalized_flight_locations_from_flight_plan(flight_plan)
     return flight_locations      
 
 def get_groups_from_flight_locations(flight_locations):
@@ -149,12 +150,13 @@ def get_flight_plans_from_airports(departure_airport, destination_airport):
         FlightPlan.destination_airport == destination_airport)
     return flight_plans
 
-def get_flight_locations_from_flight_plan(flight_plan):
+def get_normalized_flight_locations_from_flight_plan(flight_plan):
     '''Return flight locations of flight plan'''
     flight_locations = []
     flights = flight_plan.flights 
     for flight in flights:
-        flight_locations += flight.flight_locations 
+        partial_flight_locations = normalize_flight_locations(flight)
+        flight_locations += partial_flight_locations 
     return flight_locations
 
 # DUPLICATED CODE - REFACTOR
