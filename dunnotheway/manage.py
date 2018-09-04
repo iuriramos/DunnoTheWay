@@ -5,8 +5,9 @@ import builder.agent as builder
 
 if __name__ == '__main__':
     fire.Fire({
-        'track-airplane': tracker.track_flight_from_callsign,
-        'track-airports': tracker.track_flights_from_airports,
+        'track-en-route-flights': tracker.track_en_route_flights,
+        'track-en-route-flight': tracker.track_en_route_flight_by_callsign,
+        'track-airports': tracker.track_en_route_flights_by_airports,
         'build-airways': builder.build_airways_from_airports,
     })
 
