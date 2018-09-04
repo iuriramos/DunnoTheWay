@@ -5,6 +5,7 @@ import os
 import re
 import json
 import requests
+from collections import namedtuple
 from sqlalchemy import literal
 from bs4 import BeautifulSoup
 
@@ -39,36 +40,29 @@ def remove_invalid_flight_plans_data(data):
     2. callsigns not represing repetitive flights (should be more than 5 flights).
     '''
     MIN_COUNT = 5
-
-    class DataWithCount:
-        def __init__(self, data, count):
-            self.data, self.count = data, count
-
+    DataWithCount = namedtuple('DataWithCount', ['data', 'count'])
+    
     def similar_entries(this, that):
         return (this['departure_airport'] == that['departure_airport'] and 
                 this['destination_airport'] == that['destination_airport'])
 
-    data = (entry for entry in data 
-            if entry['departure_airport'] != entry['destination_airport'])
-
     unique = {} # callsign (hashable) >> DataWithCount(flight plan data, count)
     visited = set() # callsigns (hashable)
 
-    for curr in data:
+    for curr in (entry for entry in data 
+                        if entry['departure_airport'] != entry['destination_airport']):
         callsign = curr['callsign']
         if callsign not in visited:
             unique[callsign] = DataWithCount(curr, 1)
             visited.add(callsign)
         elif callsign in unique: # already visited
-            prev_data_with_count = unique[callsign]
-            if similar_entries(curr, prev_data_with_count.data):
-                prev_data_with_count.count += 1
+            prev, count = unique[callsign]
+            if similar_entries(curr, prev):
+                unique[callsign] = DataWithCount(data, count+1)
             else:
                 del unique[callsign]
 
-    return (data_with_count.data 
-            for data_with_count in unique.values() 
-            if data_with_count.count >= MIN_COUNT)
+    return (curr for curr, count in unique.values() if count >= MIN_COUNT)
 
 
 def get_flight_plans_from_flight_plans_data(data):
