@@ -1,6 +1,7 @@
 import os
 import math
-
+import time
+from datetime import datetime
 import numpy as np
 from sqlalchemy import create_engine
 
@@ -57,3 +58,11 @@ def get_rect_coordinates(coordinate):
     y = alt * math.cos(lon) * math.cos(lat)
     z = alt * math.sin(lat)
     return x, y, z
+
+def from_datetime_to_timestamp(dt):
+    '''Convert datetime object in timestamp'''
+    return time.mktime(dt.timetuple())
+
+def from_timestamp_to_datetime(ts):
+    '''Convert timestamp in datetime object'''
+    return datetime.fromtimestamp(ts)
