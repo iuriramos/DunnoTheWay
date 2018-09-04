@@ -4,36 +4,10 @@ from tracker.common.settings import CRUISING_VERTICAL_RATE_IN_MS
 
 
 def normalize_flight_locations(flight):
-    # flight_locations = filter_cruising_flight_locations(flight)
     fixed_points = get_flight_trajectory_fixed_points(flight)
     flight_locations = filter_fixed_points_flight_locations(flight, fixed_points)
     return flight_locations
 
-
-def filter_cruising_flight_locations(flight):
-    '''Filter only flight locations in cruising speed.'''
-    flight_locations = []
-
-    # def check_cruising_flight_location(prev, curr): # VERY STRICT
-    #     return prev and prev.altitude == curr.altitude
-
-    def check_cruising_flight_location(prev, curr):
-        if not prev:
-            return False
-        vertical_rate = (
-            (float(curr.altitude) - float(prev.altitude))
-            / (from_datetime_to_timestamp(curr.timestamp) - from_datetime_to_timestamp(prev.timestamp)))
-        return abs(vertical_rate) <= CRUISING_VERTICAL_RATE_IN_MS
-
-    prev = None
-    for curr in flight.flight_locations:
-        if check_cruising_flight_location(prev, curr):
-            flight_locations.append(curr)
-        prev = curr
-
-    # logger.debug('Reduce {0} flight locations to {1} crusing flight locations'.format(
-    #     len(flight.flight_locations), len(flight_locations)))
-    return flight_locations
 
 def filter_fixed_points_flight_locations(flight, fixed_points):
     '''Filter flight locations for specific fixed points'''
