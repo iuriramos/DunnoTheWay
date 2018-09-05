@@ -13,10 +13,9 @@ from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
 
 from .plot import plot_flight_records
-from .normalizer import normalize_flight_locations
 from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
-                       DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_GROUP,
-                       NUMBER_GROUPS, logger)
+                       DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_SECTION,
+                       NUMBER_SECTIONS, logger)
 
 # Record namedtuple
 Record = namedtuple('Record', ['longitude', 'latitude', 'altitude'])
@@ -29,16 +28,16 @@ def build_airways_from_airports(departure_airport_code, destination_airport_code
     '''Build cruising paths from departure airport to destination airport'''
     global session 
     
-    flight_locations_groups = []
+    flight_locations_sections = []
     
     with open_database_session() as session:
         departure_airport = get_airport_from_airport_code(departure_airport_code)
         destination_airport = get_airport_from_airport_code(destination_airport_code)
         flight_locations = get_flight_locations_from_airports(departure_airport, destination_airport)
-        flight_locations_groups = get_groups_from_flight_locations(flight_locations)
-        flight_locations_groups = filter_groups(flight_locations_groups)
+        flight_locations_sections = get_sections_from_flight_locations(flight_locations)
+        flight_locations_sections = filter_sections(flight_locations_sections)
 
-        for flight_locations in flight_locations_groups:
+        for flight_locations in flight_locations_sections:
             records = get_flight_locations_records(flight_locations)
             labels = find_labels_from_records(records) 
             centroids = find_centroids(records, labels) 
@@ -100,33 +99,33 @@ def get_flight_locations_from_airports(departure_airport, destination_airport):
         flight_locations += get_normalized_flight_locations_from_flight_plan(flight_plan)
     return flight_locations      
 
-def get_groups_from_flight_locations(flight_locations):
-    '''Divide flight locations into groups called `groups` sharing the same latitude or longitude,
+def get_sections_from_flight_locations(flight_locations):
+    '''Divide flight locations into sections called `sections` sharing the same latitude or longitude,
     depending on the `longitude_based` Flight attribute'''
     if not flight_locations:
         return []
 
-    def check_on_same_group(prev, curr):
+    def check_on_same_section(prev, curr):
         return (float(prev.longitude) == float(curr.longitude) if longitude_based
             else float(prev.latitude) == float(curr.latitude))
 
-    groups = []
+    sections = []
     sort_flight_locations(flight_locations) # sort entries first
     
     prev = flight_locations[0]
-    group = [prev]
+    section = [prev]
     longitude_based = check_longitude_based(prev)
 
     for curr in flight_locations[1:]:
-        if check_on_same_group(prev, curr):
-            group.append(curr)
+        if check_on_same_section(prev, curr):
+            section.append(curr)
         else:
-            if len(group) >= NUMBER_ENTRIES_PER_GROUP:
-                groups.append(group.copy())
-            group = [curr]
+            if len(section) >= NUMBER_ENTRIES_PER_SECTION:
+                sections.append(section.copy())
+            section = [curr]
         prev = curr
 
-    return groups
+    return sections
 
 def sort_flight_locations(flight_locations):
     '''Sort flight locations according to `longitude_based` Flight attribute'''
@@ -138,11 +137,11 @@ def check_longitude_based(flight_location):
     longitude_based = flight_location.flight.longitude_based
     return longitude_based
 
-def filter_groups(groups):
-    '''Return at most `NUMBER_groupS` groups'''
-    len_groups = len(groups)
-    step = max(1, len_groups//NUMBER_GROUPS)
-    return groups[::step]
+def filter_sections(sections):
+    '''Return at most `NUMBER_SECTIONS` sections'''
+    len_sections = len(sections)
+    step = max(1, len_sections//NUMBER_SECTIONS)
+    return sections[::step]
 
 def get_flight_plans_from_airports(departure_airport, destination_airport):
     '''Return flight plans from departure airport to destination airport'''
