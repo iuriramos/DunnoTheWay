@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 
 from common.utils import distance_three_dimensions_coordinates
+from normalizer.agent import normalize_flight_locations
 from tracker.common.settings import open_database_session
 from tracker.models.airport import Airport
 from tracker.models.flight import Flight
