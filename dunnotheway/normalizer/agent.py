@@ -4,38 +4,38 @@ from tracker.common.settings import CRUISING_VERTICAL_RATE_IN_MS
 
 
 def normalize_flight_locations(flight):
-    fixed_points = get_flight_trajectory_fixed_points(flight)
-    flight_locations = filter_fixed_points_flight_locations(flight, fixed_points)
+    section_points = get_flight_trajectory_section_points(flight)
+    flight_locations = filter_normalized_flight_locations(flight, section_points)
     return flight_locations
 
 
-def filter_fixed_points_flight_locations(flight, fixed_points):
-    '''Filter flight locations for specific fixed points'''
+def filter_normalized_flight_locations(flight, section_points):
+    '''Filter flight locations for specific section points'''
     flight_locations = flight.flight_locations
     if len(flight_locations) < 2:
         return []
     
-    fixed_flight_locations = []
+    normalized_flight_locations = []
     longitude_based = flight.longitude_based
-    follow_increasing_order = fixed_points[-1] > fixed_points[0] 
-    fixed_points_iterator = iter(fixed_points)
-    mid_point = next(fixed_points_iterator)
+    follow_increasing_order = section_points[-1] > section_points[0] 
+    section_points_iterator = iter(section_points)
+    mid_point = next(section_points_iterator)
 
     for prev_location, curr_location in zip(flight_locations, flight_locations[1:]):
         try:
             while check_mid_point_before_location(mid_point, prev_location, longitude_based, follow_increasing_order): 
-                mid_point = next(fixed_points_iterator) # might raise StopIteration Exception
+                mid_point = next(section_points_iterator) # might raise StopIteration Exception
         except StopIteration:
             # logger.error('Invalid set of flight locations {0!r} and {1!r} of flight {2!r}'.format(prev_location, curr_location, flight))
             break # leave for outer loop
      
         if check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
-            fixed_flight_location = get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based)
-            fixed_flight_locations.append(fixed_flight_location)
+            normalized_flight_location = get_normalized_flight_location(mid_point, prev_location, curr_location, longitude_based)
+            normalized_flight_locations.append(normalized_flight_location)
     
-    # logger.debug('Reduce {0} flight locations to {1} fixed flight locations'.format(
-    #     len(flight_locations), len(fixed_flight_locations)))
-    return fixed_flight_locations
+    # logger.debug('Reduce {0} flight locations to {1} normalized flight locations'.format(
+    #     len(flight_locations), len(normalized_flight_locations)))
+    return normalized_flight_locations
 
 def check_mid_point_before_location(mid_point, location, longitude_based, follow_increasing_order):
     '''Check if mid point comes before location.'''
@@ -58,8 +58,8 @@ def check_mid_point_within_flight_locations(mid_point, prev_location, curr_locat
     # logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
     return start_interval <= mid_point < end_interval or end_interval <= mid_point < start_interval
 
-def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude_based):
-    '''Return fixed flight location within two flight locations (`prev_location` and `curr_location`)
+def get_normalized_flight_location(mid_point, prev_location, curr_location, longitude_based):
+    '''Return normalized flight location within two flight locations (`prev_location` and `curr_location`)
     comparing either to the longitude or to the latitude of points.'''
     
     def find_mid_value(alpha, start, end):
@@ -94,10 +94,10 @@ def get_fixed_flight_location(mid_point, prev_location, curr_location, longitude
         flight=prev_location.flight
     )
 
-def get_flight_trajectory_fixed_points(flight):
-    '''Return fixed points related to flight trajectory'''
+def get_flight_trajectory_section_points(flight):
+    '''Return section points related to flight trajectory'''
 
-    def split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval):
+    def split_interval_in_section_partitions(start_interval, end_interval, partition_interval):
         points = []
         curr_interval = start_interval
         while curr_interval <= end_interval:
@@ -117,6 +117,6 @@ def get_flight_trajectory_fixed_points(flight):
     follow_increasing_order = start_interval < end_interval
     partition_interval = float(flight.partition_interval)
     start_interval, end_interval = sorted([start_interval, end_interval])
-    partitions = split_interval_in_fixed_partitions(start_interval, end_interval, partition_interval)
+    partitions = split_interval_in_section_partitions(start_interval, end_interval, partition_interval)
     return partitions if follow_increasing_order else partitions[::-1]
 
