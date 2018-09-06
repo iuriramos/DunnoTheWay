@@ -1,14 +1,15 @@
 from datetime import date
+
 from sqlalchemy import inspect
 
-from tracker.common.settings import Session, engine
-from tracker.models.base import Base
+from common.db import Session, engine
 from tracker.models.airline import Airline
-from tracker.models.airport import Airport
 from tracker.models.airplane import Airplane
+from tracker.models.airport import Airport
+from tracker.models.base import Base
 from tracker.models.flight import Flight
-from tracker.models.flight_plan import FlightPlan
 from tracker.models.flight_location import FlightLocation
+from tracker.models.flight_plan import FlightPlan
 
 
 def setup_environment():

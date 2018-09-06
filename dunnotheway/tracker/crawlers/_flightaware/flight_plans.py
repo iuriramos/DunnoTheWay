@@ -1,19 +1,23 @@
-import sys
-sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
-
+import json
 import os
 import re
-import json
-import requests
+import sys
 from collections import namedtuple
-from sqlalchemy import literal
+
+import requests
 from bs4 import BeautifulSoup
+from sqlalchemy import literal
 
 from common.settings import BASE_DIR
-from tracker.common.settings import open_database_session
+from common.db import open_database_session
 from tracker.models.airline import Airline
 from tracker.models.airport import Airport
 from tracker.models.flight_plan import FlightPlan
+
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
+
+
 
 DATA_TMP_FILE_NAME = 'data.tmp'
 DATA_TMP_FILE_PATH = os.path.join(BASE_DIR, 'tracker', 'crawlers', '_flightaware', DATA_TMP_FILE_NAME)
@@ -213,4 +217,3 @@ def get_html_page_of_url(url):
 
 if __name__ == '__main__':
     fetch_flight_plans()
-

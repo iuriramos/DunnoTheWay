@@ -1,7 +1,6 @@
+from common.log import logger
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
 from tracker.models.flight_location import FlightLocation
-from tracker.common.settings import CRUISING_VERTICAL_RATE_IN_MS
-from tracker.common.settings import logger
 
 
 def normalize_flight_locations_into_sections(flight):

@@ -5,25 +5,26 @@ from datetime import datetime
 
 from sqlalchemy import literal
 
+from common.log import logger
+from common.db import open_database_session
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
 from normalizer.agent import normalize_flight_locations_into_sections
-from tracker.common.plot import create_report
-from tracker.common.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-                                     ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
-                                     MAX_LATITUDE_BRAZILIAN_AIRSPACE,
-                                     MAX_LONGITUDE_BRAZILIAN_AIRSPACE,
-                                     MIN_LATITUDE_BRAZILIAN_AIRSPACE,
-                                     MIN_LONGITUDE_BRAZILIAN_AIRSPACE,
-                                     MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
-                                     SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
-                                     SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS,
-                                     logger, open_database_session)
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
 from tracker.models.airport import Airport
 from tracker.models.flight import Flight
 from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
+from tracker.opensky.plot import create_report
+from tracker.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
+                                      ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
+                                      MAX_LATITUDE_BRAZILIAN_AIRSPACE,
+                                      MAX_LONGITUDE_BRAZILIAN_AIRSPACE,
+                                      MIN_LATITUDE_BRAZILIAN_AIRSPACE,
+                                      MIN_LONGITUDE_BRAZILIAN_AIRSPACE,
+                                      MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
+                                      SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
+                                      SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS)
 
 from .api import (get_flight_address_from_callsign, get_states,
                   get_states_from_addresses, get_states_from_bounding_box)

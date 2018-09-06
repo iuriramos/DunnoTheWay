@@ -1,14 +1,17 @@
 import os
 import random
-import matplotlib
-matplotlib.use('Agg')
 
+import matplotlib
 import matplotlib.pyplot as plt
 
 from common.settings import BASE_DIR
-from tracker.common.settings import logger
+from common.log import logger
 
-    
+
+matplotlib.use('Agg')
+
+
+
 def create_report(flight): 
     '''Create report from flight (flight location, speed, vertical_rate)'''
     logger.info('Create report for flight {0!r}'.format(flight))
@@ -63,4 +66,3 @@ def plot_flight_location_altitudes(flight_locations, axis):
     altitudes = [float(flight_location.altitude) for flight_location in flight_locations]
     axis.plot(altitudes)
     axis.set_title('Barometric Altitudes')
-

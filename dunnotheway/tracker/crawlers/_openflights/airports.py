@@ -2,16 +2,19 @@
 
 import os
 import sys
-sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
-
 from io import StringIO
 
-import requests
 import numpy as np
 import pandas as pd
+import requests
 
-from tracker.common.settings import open_database_session
+from common.db import open_database_session
 from tracker.models.airport import Airport
+
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
+
+
 
 def fetch_airports_information():
     # fetch airports dataframe
@@ -84,4 +87,3 @@ def convert_feet_to_meters(feet):
 
 if __name__ == '__main__':
     fetch_airports_information()
-
