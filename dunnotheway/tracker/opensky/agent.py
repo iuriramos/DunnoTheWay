@@ -222,7 +222,7 @@ def get_flight_from_state(state, building_mode):
             airplane=airplane,
             flight_plan=flight_plan,
             partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-            longitude_based=longitude_based
+            longitude_based=flight_plan.longitude_based
         )
     else:
         flight = Flight (

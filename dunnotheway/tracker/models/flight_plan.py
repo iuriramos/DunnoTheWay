@@ -24,3 +24,7 @@ class FlightPlan(Base):
             departure_airport=repr(self.departure_airport),
             destination_airport=repr(self.destination_airport)
         )
+    
+    @property
+    def longitude_based(self):
+        '''Return if flight trajectory should be split by longitude or latitude.'''
