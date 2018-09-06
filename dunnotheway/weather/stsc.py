@@ -18,11 +18,11 @@ class STSC:
         self._update_cells()
         return list(self._cells) 
 
-    def convection_cells_within_bounding_box(self, bbox):
+    def convection_cells_within_bounding_box(self, bbox, sorting_strategy):
         self._update_cells()
         if bbox not in self._bbox_to_cells:
             cells = self._filter_cells_by_bounding_box(self._cells, bbox)
-            cells = sorted(cells, key=lambda cell: (cell.longitude, cell.latitude))
+            cells = sorted(cells, key=sorting_strategy)
             self._bbox_to_cells[bbox] = cells
         return self._bbox_to_cells[bbox]
     
