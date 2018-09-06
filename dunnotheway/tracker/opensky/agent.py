@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import literal
 
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
+from normalizer.agent import normalize_flight_locations_into_sections
 from tracker.common.plot import create_report
 from tracker.common.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
                                      ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
@@ -32,7 +33,7 @@ from .state_vector import StateVector
 session = None
 
 
-def track_en_route_flight_by_callsign(callsign):
+def track_en_route_flight_by_callsign(callsign, building_mode):
     '''Keep track of flight information from its callsign'''
     global session
 
@@ -44,12 +45,19 @@ def track_en_route_flight_by_callsign(callsign):
         while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
             # time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             address = get_flight_address_from_callsign(callsign)
-            update_flights(address_to_flight, addresses=[address])
+            update_flights(address_to_flight, [address], building_mode)
             count_iterations += 1
 
 
-def track_en_route_flights_by_airports(departure_airport_code, destination_airport_code, round_trip_mode=False):
-    '''Keep track of current flights information from departure airport to destination airport'''
+def track_en_route_flights_by_airports(
+    departure_airport_code, destination_airport_code, 
+    round_trip_mode=False, building_mode=True):
+    '''
+    Keep track of current flights information from departure airport to destination airport
+    
+    round trip mode: interchanging departure and destination airports as well
+    building mode: record flight and their fight locations to build Air Space Graph 
+    '''
     global session 
 
     logger.info('Track flight addresses from {0} to {1} in {2} mode'.format(
@@ -66,12 +74,16 @@ def track_en_route_flights_by_airports(departure_airport_code, destination_airpo
             time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if should_update_flight_addresses(count_iterations):
                 addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
-            update_flights(address_to_flight, addresses)
+            update_flights(address_to_flight, addresses, building_mode)
             count_iterations += 1
 
 
-def track_en_route_flights():
-    '''Keep track of ALL en-route flights'''
+def track_en_route_flights(building_mode=True):
+    '''
+    Keep track of ALL en-route flights
+    
+    building mode: record flight and their fight locations to build Air Space Graph 
+    '''
     global session 
 
     address_to_flight = {}
@@ -82,7 +94,7 @@ def track_en_route_flights():
             time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if should_update_flight_addresses(count_iterations):
                 addresses = get_addresses_within_brazilian_airspace()
-            update_flights(address_to_flight, addresses)
+            update_flights(address_to_flight, addresses, building_mode)
             count_iterations += 1
 
 
@@ -120,8 +132,7 @@ def get_brazilian_airspace_bounding_box():
         MIN_LATITUDE_BRAZILIAN_AIRSPACE,
         MAX_LATITUDE_BRAZILIAN_AIRSPACE,
         MIN_LONGITUDE_BRAZILIAN_AIRSPACE,
-        MAX_LONGITUDE_BRAZILIAN_AIRSPACE
-    )
+        MAX_LONGITUDE_BRAZILIAN_AIRSPACE)
     return bbox
 
 def get_all_callsigns():
@@ -156,12 +167,12 @@ def get_airport_from_airport_code(airport_code):
     airport = session.query(Airport).filter(Airport.icao_code == airport_code).first()
     return airport
     
-def update_flights(address_to_flight, addresses):
+def update_flights(address_to_flight, addresses, building_mode):
     '''Update address to flight mapping, which maps identifiers to flight objects and keeps track of current state-vector information'''
-    update_finished_flights(address_to_flight, addresses)
-    update_current_flights(address_to_flight, addresses)
+    update_finished_flights(address_to_flight, addresses, building_mode)
+    update_current_flights(address_to_flight, addresses, building_mode)
 
-def update_finished_flights(address_to_flight, addresses):
+def update_finished_flights(address_to_flight, addresses, building_mode):
     '''Update finished flights in address to flight mappig'''
     old_addresses = address_to_flight.keys() - addresses
     logger.info('Update finished flights (addresses): {0}'.format(old_addresses))
@@ -171,42 +182,52 @@ def update_finished_flights(address_to_flight, addresses):
 
     for address in old_addresses:
         flight = address_to_flight[address]
-        normalize_flight_locations(flight)
+        normalize_flight_locations(flight, building_mode)
         if has_enough_flight_locations(flight):
-            save_flight(flight) # save flight locations as well
-            create_report(flight) # create report if flag is set to True
+            save_flight(flight) 
+            # create_report(flight) 
         del address_to_flight[address]
 
 def save_flight(flight):
-    '''Save flight information in database'''
+    '''Save flight information in database (flight locations included)'''
     logger.info('Save flight {0!r}'.format(flight))
     session.add(flight)
     session.commit()
 
-def update_current_flights(address_to_flight, addresses):
+def update_current_flights(address_to_flight, addresses, building_mode):
     '''Update address to flight mapping with current values of addresses'''
     logger.info('Update current flights: {0}'.format(addresses))
 
     for state in get_states_from_addresses(addresses):
         address = state.address
         if address not in address_to_flight:
-            new_flight = get_flight_from_state(state)
+            new_flight = get_flight_from_state(state, building_mode)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
         flight.flight_locations.append(get_flight_location_from_state(state, flight))
+        # tracking conflicts HERE
+        if not building_mode:
+            # update_flight_location_status(*l[-2:])
+            pass
 
-def get_flight_from_state(state):
+def get_flight_from_state(state, building_mode):
     '''Return flight object from state-vector.'''
     flight_plan = get_flight_plan_from_state(state)
     airplane = get_airplane_from_state(state)
     longitude_based = should_partition_by_longitude(flight_plan) 
     
-    flight = Flight (
-        airplane=airplane,
-        flight_plan=flight_plan,
-        partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-        longitude_based=longitude_based
-    )
+    if building_mode:
+        flight = Flight (
+            airplane=airplane,
+            flight_plan=flight_plan,
+            partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
+            longitude_based=longitude_based
+        )
+    else:
+        flight = Flight (
+            airplane=airplane,
+            flight_plan=flight_plan
+        )
 
     logger.debug('Create new flight object: {0!r}'.format(flight))
     return flight
@@ -267,10 +288,13 @@ def get_flight_plan_from_state(state):
     flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == state.callsign).first()
     return flight_plan
 
-def normalize_flight_locations(flight):
+def normalize_flight_locations(flight, building_mode):
     '''Normalize flight locations information.'''
     logger.info('Normalize flight locations of flight {0!r}'.format(flight))
     filter_duplicated_flight_locations(flight)
+    if building_mode:
+        flight_locations = normalize_flight_locations_into_sections(flight)
+        flight.flight_locations = flight_locations
 
 def filter_duplicated_flight_locations(flight):
     '''Remove duplicated flight locations.'''

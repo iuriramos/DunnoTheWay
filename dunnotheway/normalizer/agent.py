@@ -1,9 +1,10 @@
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
 from tracker.models.flight_location import FlightLocation
 from tracker.common.settings import CRUISING_VERTICAL_RATE_IN_MS
+from tracker.common.settings import logger
 
 
-def normalize_flight_locations(flight):
+def normalize_flight_locations_into_sections(flight):
     section_points = get_flight_trajectory_section_points(flight)
     flight_locations = filter_normalized_flight_locations(flight, section_points)
     return flight_locations
@@ -26,15 +27,15 @@ def filter_normalized_flight_locations(flight, section_points):
             while check_mid_point_before_location(mid_point, prev_location, longitude_based, follow_increasing_order): 
                 mid_point = next(section_points_iterator) # might raise StopIteration Exception
         except StopIteration:
-            # logger.error('Invalid set of flight locations {0!r} and {1!r} of flight {2!r}'.format(prev_location, curr_location, flight))
+            logger.error('Invalid set of flight locations {0!r} and {1!r} of flight {2!r}'.format(prev_location, curr_location, flight))
             break # leave for outer loop
      
         if check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
             normalized_flight_location = get_normalized_flight_location(mid_point, prev_location, curr_location, longitude_based)
             normalized_flight_locations.append(normalized_flight_location)
     
-    # logger.debug('Reduce {0} flight locations to {1} normalized flight locations'.format(
-    #     len(flight_locations), len(normalized_flight_locations)))
+    logger.debug('Reduce {0} flight locations to {1} normalized flight locations'.format(
+        len(flight_locations), len(normalized_flight_locations)))
     return normalized_flight_locations
 
 def check_mid_point_before_location(mid_point, location, longitude_based, follow_increasing_order):
@@ -43,7 +44,7 @@ def check_mid_point_before_location(mid_point, location, longitude_based, follow
         base_point = float(location.longitude)
     else: # latitude based
         base_point = float(location.latitude)
-    # logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_increasing_order]))
+    logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_increasing_order]))
     return mid_point < base_point if follow_increasing_order else mid_point > base_point
 
 def check_mid_point_within_flight_locations(mid_point, prev_location, curr_location, longitude_based):
@@ -55,7 +56,7 @@ def check_mid_point_within_flight_locations(mid_point, prev_location, curr_locat
     else: # latitude based
         start_interval, end_interval = (
             float(prev_location.latitude), float(curr_location.latitude))
-    # logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
+    logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.format(mid_point, start_interval, end_interval))
     return start_interval <= mid_point < end_interval or end_interval <= mid_point < start_interval
 
 def get_normalized_flight_location(mid_point, prev_location, curr_location, longitude_based):

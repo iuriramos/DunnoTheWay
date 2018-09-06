@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 
 from common.utils import distance_three_dimensions_coordinates
-from normalizer.agent import normalize_flight_locations
+from normalizer.agent import normalize_flight_locations_into_sections
 from tracker.common.settings import open_database_session
 from tracker.models.airport import Airport
 from tracker.models.flight import Flight
@@ -153,11 +153,16 @@ def get_flight_plans_from_airports(departure_airport, destination_airport):
 def get_normalized_flight_locations_from_flight_plan(flight_plan):
     '''Return flight locations of flight plan'''
     flight_locations = []
-    flights = flight_plan.flights 
-    for flight in flights:
-        partial_flight_locations = normalize_flight_locations(flight)
+    normalized_flights = get_normalized_flights(flight_plan.flights) 
+    for flight in normalized_flights:
+        # partial_flight_locations = normalize_flight_locations_into_sections(flight)
+        partial_flight_locations = flight.flight_locations
         flight_locations += partial_flight_locations 
     return flight_locations
+
+def get_normalized_flights(flights):
+    # partition attribute of flight should be different than 'None'
+    return [flight for flight in flights if flight.partition is not None] 
 
 # DUPLICATED CODE - REFACTOR
 def get_airport_from_airport_code(airport_code):
