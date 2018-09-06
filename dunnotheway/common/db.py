@@ -2,6 +2,7 @@ from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
 from common import utils
 
@@ -32,3 +33,4 @@ def open_database_session():
 
 engine = create_db_engine()
 Session = sessionmaker(bind=engine)
+Base = declarative_base()

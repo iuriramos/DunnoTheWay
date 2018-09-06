@@ -1,7 +1,7 @@
 import math
 from sqlalchemy import Column, Numeric, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from tracker.models.base import Base
+from common.db import Base
 
 
 class FlightLocation(Base):

@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Numeric, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from tracker.models.base import Base
+from common.db import Base
 
 
 class Flight(Base):

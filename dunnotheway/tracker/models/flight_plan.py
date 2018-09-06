@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-from tracker.models.base import Base
+from common.db import Base
 
 
 class FlightPlan(Base):

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Numeric, String, Integer
-from tracker.models.base import Base
+from common.db import Base
 
 
 class Airport(Base):
