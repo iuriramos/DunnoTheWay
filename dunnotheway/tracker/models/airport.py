@@ -1,5 +1,8 @@
 from sqlalchemy import Column, Numeric, String, Integer
 from common.db import Base
+from tracker.models.bounding_box import BoundingBox
+from tracker.models.flight_plan import FlightPlan
+from tracker.models.flight_location import FlightLocation
 
 
 class Airport(Base):
@@ -27,15 +30,96 @@ class Airport(Base):
         return 'Airport({icao_code})'.format(icao_code=self.icao_code)
 
     @staticmethod
-    def get_bounding_box_from_airports(departure_airport, destination_airport):
-        '''Return bounding box from departure airport to destination airport 
-        (min latitude, max latitude, min longitude, max longitude)'''
-        bbox = (
+    def normalized_flight_locations_related_to_airports(
+        session, departure_airport, destination_airport, partition_interval):
+        '''Return registered flight locations from departure airport to destination airport'''
+        normalized_flight_locations = []
+        
+        for flight_plan in (Airport.
+            _flight_plans_related_to_airports(session, departure_airport, destination_airport)):
+            normalized_flight_locations += (FlightLocation.
+                _normalized_flight_locations_related_to_flight_plan(flight_plan))
+        
+        # sort flight locations
+        longitude_based = Airport.should_be_longitude_based(
+            departure_airport, destination_airport)
+        follow_ascending_order = Airport.follow_ascending_order(
+            departure_airport, destination_airport)
+        
+        normalized_flight_locations.sort(
+            key=lambda fl: fl.longitude if longitude_based else fl.latitude,
+            reverse=(not follow_ascending_order))
+        return normalized_flight_locations
+
+    @staticmethod
+    def _flight_plans_related_to_airports(session, departure_airport, destination_airport):
+        '''Return flight plans from departure airport to destination airport'''
+        flight_plans = session.query(FlightPlan).filter(
+            FlightPlan.departure_airport == departure_airport and
+            FlightPlan.destination_airport == destination_airport)
+        return flight_plans
+
+    @staticmethod
+    def airport_from_icao_code(session, icao_code):
+        '''Return airport from airport code'''
+        return session.query(Airport).filter(Airport.icao_code == icao_code).first()
+
+
+    @staticmethod
+    def bounding_box_related_to_airports(departure_airport, destination_airport):
+        '''
+        Return bounding box (min latitude, max latitude, min longitude, max longitude)
+        from departure airport to destination airport
+        '''
+        return BoundingBox(
             float(min(departure_airport.latitude, destination_airport.latitude)), 
             float(max(departure_airport.latitude, destination_airport.latitude)),
             float(min(departure_airport.longitude, destination_airport.longitude)), 
-            float(max(departure_airport.longitude, destination_airport.longitude))
-        )
-        # logger.debug('Select bounding box {0} from departure airport {1!r} to destination airport {2!r}'.format(
-        #     bbox, departure_airport, destination_airport))
-        return bbox
+            float(max(departure_airport.longitude, destination_airport.longitude)))
+        
+    @staticmethod
+    def should_be_longitude_based(departure_airport, destination_airport):
+        '''Return if flight trajectory should be split by longitude or latitude.'''
+        longitude_distance = abs(destination_airport.longitude - departure_airport.longitude)
+        latitude_distance = abs(destination_airport.latitude - departure_airport.latitude)
+        return longitude_distance >= latitude_distance
+
+    @staticmethod
+    def _section_points_related_to_airports(
+        departure_airport, destination_airport, partition_interval):
+        '''Return section points related to flight trajectory'''
+
+        def split_interval_in_section_partitions(
+            start_interval, end_interval, partition_interval):
+            points = []
+            curr_interval = start_interval
+            while curr_interval <= end_interval:
+                points.append(curr_interval)
+                curr_interval = round(curr_interval + partition_interval, 3)
+            return points
+        
+        longitude_based = Airport.should_be_longitude_based(
+            departure_airport, destination_airport)
+
+        if longitude_based:
+            start_interval, end_interval = sorted([
+                float(departure_airport.longitude), float(destination_airport.longitude)])
+        else:
+            start_interval, end_interval = sorted([
+                float(departure_airport.latitude), float(destination_airport.latitude)])
+
+        follow_ascending_order = Airport.follow_ascending_order(
+            departure_airport, destination_airport)
+        partitions = split_interval_in_section_partitions(
+            start_interval, end_interval, partition_interval)
+        return partitions if follow_ascending_order else partitions[::-1]
+
+    @staticmethod
+    def follow_ascending_order(departure_airport, destination_airport):
+        longitude_based = Airport.should_be_longitude_based(
+            departure_airport, destination_airport)
+
+        return (float(departure_airport.longitude) < float(destination_airport.longitude) 
+                if longitude_based else 
+                float(departure_airport.latitude) < float(destination_airport.latitude))
+        

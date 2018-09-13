@@ -1,6 +1,7 @@
 import time
 import requests
 from convection_cell import ConvectionCell
+from tracker.models.airport import Airport
 
 
 class STSC:
@@ -12,48 +13,72 @@ class STSC:
         self._cells = set()
         self._bbox_to_cells = {}
         self._updated_at = 0 # timestamp
+        self._has_changed = False
+
+    # def cells_from_airports(self, departure_airport, destination_airport):
+    #     bbox = Airport.bounding_box_related_to_airports(departure_airport, destination_airport)
+    #     return self.cells_within_bounding_box(bbox)
+
+    #     # bbox = Airport.bounding_box_related_to_airports(departure_airport, destination_airport)
+    #     # longitude_based = Airport.should_be_longitude_based(departure_airport, destination_airport)
+        
+    #     # if longitude_based:
+    #     #     sorting_strategy = lambda x: (x.longitude, x.latitude)
+    #     # else:
+    #     #     sorting_strategy = lambda x: (x.latitude, x.longitude)
+        
+    #     # cells = self.cells_within_bounding_box(bbox, sorting_strategy)
+    #     # return cells
 
     @property
-    def convection_cells(self):
-        self._update_cells()
-        return list(self._cells) 
-
-    def convection_cells_within_bounding_box(self, bbox, sorting_strategy):
-        self._update_cells()
+    def has_changed(self):
+        self.cells
+        result = self._has_changed
+        self._has_changed = False # careful with this side effect!
+        return result
+    
+    def cells_within_bounding_box(self, bbox, sorting_strategy=None):
         if bbox not in self._bbox_to_cells:
-            cells = self._filter_cells_by_bounding_box(self._cells, bbox)
+            cells = self._filter_cells_by_bounding_box(self.cells, bbox)
             cells = sorted(cells, key=sorting_strategy)
             self._bbox_to_cells[bbox] = cells
         return self._bbox_to_cells[bbox]
-    
+
     def _filter_cells_by_bounding_box(self, cells, bbox):
-        min_latitude, max_latitude, min_longitude, max_longitude = bbox
         
         def cell_within_bbox(cell):
-            return (min_latitude <= cell.latitude <= max_latitude and
-                    min_longitude <= cell.longitude <= max_longitude)
+            return (bbox.min_latitude <= cell.latitude <= bbox.max_latitude and
+                    bbox.min_longitude <= cell.longitude <= bbox.max_longitude)
+        
         bbox_cells = []
         for cell in cells:
             if cell_within_bbox(cell):
                 bbox_cells.append(cell)
         return bbox_cells
 
-    def _update_cells(self):
+    @property
+    def cells(self):
         now = time.time()
-        if now - self._updated_at > self.UPDATE_INTERVAL_IN_SECS:        
-            try:
-                events = self._get_request_response()
-                for cell_id, event in events.items():
-                    try:
-                        cell = self._create_cell(cell_id, event)
-                        self._cells.add(cell)
-                    except KeyError:
-                        pass # TODO: Log Error Message
+        if now - self._updated_at > self.UPDATE_INTERVAL_IN_SECS:
+            if self._update_cells(): 
                 # set new timestamp and empty cache
-                self._updated_at = now
                 self._bbox_to_cells = {}
-            except requests.exceptions.RequestException:
-                pass # TODO: Log Error Message
+                self._updated_at = now
+                self._has_changed = True        
+        return self._cells
+
+    def _update_cells(self):
+        try:
+            events = self._get_request_response()
+            for cell_id, event in events.items():
+                try:
+                    cell = self._create_cell(cell_id, event)
+                    self._cells.add(cell)
+                except KeyError:
+                    return False
+        except requests.exceptions.RequestException:
+            return False
+        return True
 
     def _get_request_response(self):
         r = requests.get(self._url)
@@ -69,6 +94,6 @@ class STSC:
 if __name__ == '__main__':
     client = STSC()
     start = time.time()
-    _ = client.convection_cells
+    _ = client.cells
     end = time.time()
     print('retrieval time (in seconds) -', end-start)
