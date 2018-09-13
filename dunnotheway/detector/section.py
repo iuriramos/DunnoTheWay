@@ -83,6 +83,13 @@ class Section:
     def __iter__(self):
         yield from self._label_to_records.items()
 
+    @property
+    def labels(self):
+        if not self._has_run_classifier:
+            self.classifier.fit(self.records)
+            self._has_run_classifier = True
+        return self.classifier.labels_
+
     @staticmethod
     def _from_flight_locations(flight_locations):
         '''Return a SINGLE section from flight locations'''
