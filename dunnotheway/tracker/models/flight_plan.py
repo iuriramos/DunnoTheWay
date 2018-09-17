@@ -25,12 +25,34 @@ class FlightPlan(Base):
             destination_airport=repr(self.destination_airport))
 
     @staticmethod
+    def flight_plans_from_airports(session, departure_airport, destination_airport):
+        '''Return flight plans from departure airport to destination airport'''
+        flight_plans = session.query(FlightPlan).filter(
+            FlightPlan.departure_airport == departure_airport and
+            FlightPlan.destination_airport == destination_airport)
+        return flight_plans
+
+    @staticmethod
+    def all_flight_plans(session):
+        return session.query(FlightPlan).all()
+
+    @staticmethod
+    def flight_plan_from_callsign(session, callsign):
+        return session.query(FlightPlan).filter(FlightPlan.callsign == callsign).first()
+
+    @staticmethod
+    def split_callsign(callsign):
+        '''Split callsign in meaninful chunks (airplane designator and flight number)'''
+        airplane_designator, flight_number = callsign[:3], callsign[3:]
+        return airplane_designator, flight_number
+
+    @staticmethod
     def normalized_flight_locations_related_to_flight_plan(flight_plan):
         '''Return flight locations of flight plan'''
         
         def _normalized_flights_related_to_flight_plan(flight_plan):
             flights = flight_plan.flights
-            # TODO: Change database schema
+            #### TODO: Change database schema
             return [flight for flight in flights if flight.partition_interval is not None] 
 
         flight_locations = []

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import literal, Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
 
@@ -22,5 +22,15 @@ class Airplane(Base):
     def __repr__(self):
         return 'Airplane({icao_code}, {airline})'.format(
             icao_code=self.icao_code,
-            airline=self.airline
-        )
+            airline=self.airline)
+
+    @staticmethod
+    def exists_airplane(session, icao_code):
+        q = session.query(Airplane).filter(Airplane.icao_code == icao_code)
+        return session.query(literal(True)).filter(q.exists()).scalar()
+
+    @staticmethod
+    def airplane_from_icao_code(session, icao_code):
+        return session.query(Airplane).filter(Airplane.icao_code == icao_code).first()
+        
+        

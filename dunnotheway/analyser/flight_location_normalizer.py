@@ -16,7 +16,7 @@ def normalize_flight_locations(flight_locations):
     section_points = Airport._section_points_related_to_airports(
         flight_plan.departure_airport, flight_plan.destination_airport, 
         flight.partition_interval)
-    return FlightLocation._find_normalized_flight_locations_from_section_points(
+    return _find_normalized_flight_locations_from_section_points(
         flight_locations, section_points)
 
 

@@ -35,8 +35,8 @@ class Airport(Base):
         '''Return registered flight locations from departure airport to destination airport'''
         normalized_flight_locations = []
         
-        for flight_plan in (Airport.
-            _flight_plans_related_to_airports(session, departure_airport, destination_airport)):
+        for flight_plan in (FlightPlan.
+            flight_plans_from_airports(session, departure_airport, destination_airport)):
             normalized_flight_locations += (FlightPlan.
                 normalized_flight_locations_related_to_flight_plan(flight_plan))
         
@@ -52,30 +52,9 @@ class Airport(Base):
         return normalized_flight_locations
 
     @staticmethod
-    def _flight_plans_related_to_airports(session, departure_airport, destination_airport):
-        '''Return flight plans from departure airport to destination airport'''
-        flight_plans = session.query(FlightPlan).filter(
-            FlightPlan.departure_airport == departure_airport and
-            FlightPlan.destination_airport == destination_airport)
-        return flight_plans
-
-    @staticmethod
     def airport_from_icao_code(session, icao_code):
         '''Return airport from airport code'''
         return session.query(Airport).filter(Airport.icao_code == icao_code).first()
-
-
-    @staticmethod
-    def bounding_box_related_to_airports(departure_airport, destination_airport):
-        '''
-        Return bounding box (min latitude, max latitude, min longitude, max longitude)
-        from departure airport to destination airport
-        '''
-        return BoundingBox(
-            float(min(departure_airport.latitude, destination_airport.latitude)), 
-            float(max(departure_airport.latitude, destination_airport.latitude)),
-            float(min(departure_airport.longitude, destination_airport.longitude)), 
-            float(max(departure_airport.longitude, destination_airport.longitude)))
         
     @staticmethod
     def should_be_longitude_based(departure_airport, destination_airport):

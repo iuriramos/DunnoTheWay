@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
+from tracker.models.flight_plan import FlightPlan
 
 
 class Airline(Base):
@@ -19,5 +20,10 @@ class Airline(Base):
     def __repr__(self):
         return 'Airline({icao_code}, {name})'.format(
             icao_code=self.icao_code,
-            name=self.name
-        )
+            name=self.name)
+
+    @staticmethod
+    def airline_from_callsign(session, callsign):
+        '''Return Airline associated with callsign'''
+        icao_code, _ = FlightPlan.split_callsign(callsign)
+        return session.query(Airline).filter(Airline.icao_code == icao_code).first()

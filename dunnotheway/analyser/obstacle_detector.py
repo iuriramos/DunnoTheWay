@@ -3,6 +3,7 @@ from collections import namedtuple
 from common.utils import distance_two_dimensions_coordinates
 from weather.stsc import STSC
 from tracker.models.airport import Airport
+from tracker.models.bounding_box import bounding_box_related_to_airports
 from analyser.flight_location_normalizer import normalize_flight_locations
 from .section import Section, FlightLocationRecord
 from .obstacle import Obstacle
@@ -102,7 +103,7 @@ class ObstacleDetector:
         follow_ascending_order = Airport.follow_ascending_order(
             departure_airport, destination_airport)
 
-        bbox = Airport.bounding_box_related_to_airports(departure_airport, destination_airport)
+        bbox = bounding_box_related_to_airports(departure_airport, destination_airport)
         sorting_key = (lambda x: reference_point(x, longitude_based))
         sorting_reverse = (not follow_ascending_order)
         cells = self._stsc.cells_within_bounding_box(

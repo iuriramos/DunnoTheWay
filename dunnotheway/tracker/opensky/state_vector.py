@@ -1,3 +1,7 @@
+from tracker.models.airplane import Airplane
+from tracker.models.airline import Airline
+
+
 class StateVector:
     '''Representation of State-Vector Class of OpenSky Network API'''
     
@@ -52,3 +56,17 @@ class StateVector:
     def callsign(self):
         '''Return state-vector flight callsign'''
         return self._callsign.strip()
+
+
+    @staticmethod
+    def airplane_from_state(session, state):
+        '''Return airplane object from state-vector if the airplane was recorded in db before,
+        create and return new airplane object, otherwise.'''
+        icao_code = state.address
+        if Airplane.exists_airplane(session, icao_code):
+            airplane = Airplane.airplane_from_icao_code(session, icao_code)
+        else: # create new airplane object
+            airplane = Airplane(
+                icao_code=icao_code,
+                airline=Airline.airline_from_callsign(session, state.callsign))
+        return airplane
