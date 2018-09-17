@@ -31,14 +31,14 @@ class Airport(Base):
 
     @staticmethod
     def normalized_flight_locations_related_to_airports(
-        session, departure_airport, destination_airport, partition_interval):
+        session, departure_airport, destination_airport):
         '''Return registered flight locations from departure airport to destination airport'''
         normalized_flight_locations = []
         
         for flight_plan in (Airport.
             _flight_plans_related_to_airports(session, departure_airport, destination_airport)):
-            normalized_flight_locations += (FlightLocation.
-                _normalized_flight_locations_related_to_flight_plan(flight_plan))
+            normalized_flight_locations += (FlightPlan.
+                normalized_flight_locations_related_to_flight_plan(flight_plan))
         
         # sort flight locations
         longitude_based = Airport.should_be_longitude_based(

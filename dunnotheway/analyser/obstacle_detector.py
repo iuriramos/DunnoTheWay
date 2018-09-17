@@ -3,17 +3,17 @@ from collections import namedtuple
 from common.utils import distance_two_dimensions_coordinates
 from weather.stsc import STSC
 from tracker.models.airport import Airport
-from tracker.models.flight_location import FlightLocation
-from detector.flight_location_status import FlightLocationStatus
-
+from analyser.flight_location_normalizer import normalize_flight_locations
 from .section import Section, FlightLocationRecord
 from .obstacle import Obstacle
+
 
 Intersection = namedtuple(
     'Intersection', ['convection_cell', 'flight_ids'])
 
 reference_point = (lambda x, longitude_based: 
     x.longitude if longitude_based else x.latitude)
+
 
 class ObstacleDetector:
     DepartureAndDestinationAirports = namedtuple(
@@ -23,7 +23,6 @@ class ObstacleDetector:
         self._airports_to_sections = {}
         self._stsc = STSC()
         self._airports_to_intersections = {}
-
 
     def check_obstacles_related_to_flight_location(
         self, prev_flight_location, curr_flight_location):
@@ -37,7 +36,7 @@ class ObstacleDetector:
         follow_ascending_order = Airport.follow_ascending_order(*airports)
         intersections = self.check_intersections_related_to_airports(*airports)
         
-        normalized_flight_location = FlightLocation.normalize_flight_locations(
+        normalized_flight_location = normalize_flight_locations(
             [prev_flight_location, curr_flight_location])
         curr_flight_ids = self.flight_ids_in_the_same_airway_of_normalized_flight_location(
             normalized_flight_location, airports)

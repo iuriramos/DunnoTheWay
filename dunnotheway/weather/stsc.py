@@ -1,7 +1,7 @@
 import time
 import requests
-from convection_cell import ConvectionCell
 from tracker.models.airport import Airport
+from .convection_cell import ConvectionCell
 
 
 class STSC:

@@ -10,17 +10,12 @@ from tracker.models.flight import Flight
 from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
 
+from analyser.obstacle import Obstacle
+from weather.convection_cell import ConvectionCell
+
 
 def setup_environment():
     '''Setup database environment'''
-
-    # all tables are deleted
-    Base.metadata.drop_all(engine)   
-
-    # generate database schema
-    Base.metadata.create_all(engine)
-
-    # create a new session
     session = Session()
 
     # crete airlines
@@ -112,6 +107,9 @@ def setup_environment():
     session.commit()
     session.close()
 
+
+# create database tables
+Base.metadata.create_all(engine)
 
 # check if table names exists via inspect
 ins = inspect(engine)

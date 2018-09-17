@@ -1,8 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
-from tracker.models.airport import Airport
-from tracker.models.flight import Flight
 
 
 class FlightPlan(Base):
@@ -24,5 +22,19 @@ class FlightPlan(Base):
         return 'FlightPlan({callsign}, {departure_airport}, {destination_airport})'.format(
             callsign=self.callsign,
             departure_airport=repr(self.departure_airport),
-            destination_airport=repr(self.destination_airport)
-        )
+            destination_airport=repr(self.destination_airport))
+
+    @staticmethod
+    def normalized_flight_locations_related_to_flight_plan(flight_plan):
+        '''Return flight locations of flight plan'''
+        
+        def _normalized_flights_related_to_flight_plan(flight_plan):
+            flights = flight_plan.flights
+            # TODO: Change database schema
+            return [flight for flight in flights if flight.partition_interval is not None] 
+
+        flight_locations = []
+        for flight in _normalized_flights_related_to_flight_plan(flight_plan): 
+            flight_locations += flight.flight_locations 
+        return flight_locations
+

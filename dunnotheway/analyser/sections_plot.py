@@ -5,8 +5,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from common.db import open_database_session
-from detector.flight_location_record import FlightLocationRecord
-from detector.section import Section
+from analyser.section import Section
 from tracker.models.airport import Airport
 
 from .settings import NUMBER_SECTIONS
@@ -27,9 +26,12 @@ def build_airways_related_to_airports(
         return sections[::step]
     
     with open_database_session() as session:
-        departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
-        destination_airport = Airport.airport_from_icao_code(session, destination_airport_code)
-        sections = Section.sections_related_to_airports(departure_airport, destination_airport)
+        departure_airport = Airport.airport_from_icao_code(
+            session, departure_airport_code)
+        destination_airport = Airport.airport_from_icao_code(
+            session, destination_airport_code)
+        sections = Section.sections_related_to_airports(
+            session, departure_airport, destination_airport)
         
         for section in filter_sections(sections):
             _plot_flight_records(section.records, section.labels, centroids=[])
@@ -42,14 +44,14 @@ def _plot_flight_records(records, labels, centroids):
         raise ValueError('records should not be empty')
     
     first_record, last_record = records[0], records[-1]
-    longitude_based = first_record.longitude == last_record.longitude
+    longitude_based = (first_record.longitude == last_record.longitude)
     
     if longitude_based:
-        longitutes_or_altitudes = [float(record.latitude) for record in records]
+        longitutes_or_altitudes = [record.latitude for record in records]
     else:
-        longitutes_or_altitudes = [float(record.longitude) for record in records]
+        longitutes_or_altitudes = [record.longitude for record in records]
 
-    altitudes = [float(record.altitude) for record in records]
+    altitudes = [record.altitude for record in records]
     _, axis = plt.subplots()
     
     axis.set_title(

@@ -8,8 +8,7 @@ from sqlalchemy import literal
 from common.db import open_database_session
 from common.log import logger
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
-from detector.agent import check_weather_conflicts
-from normalizer.agent import normalize_flight_locations_into_sections
+from analyser.obstacle_detector import ObstacleDetector
 from tracker.models.bounding_box import BoundingBox, brazilian_airspace_bounding_box
 from tracker.models.airline import Airline
 from tracker.models.airplane import Airplane
@@ -17,6 +16,7 @@ from tracker.models.airport import Airport
 from tracker.models.flight import Flight
 from tracker.models.flight_location import FlightLocation
 from tracker.models.flight_plan import FlightPlan
+from analyser.flight_location_normalizer import normalize_flight_locations
 from tracker.opensky.plot import create_report
 from tracker.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
                                       ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
@@ -40,11 +40,13 @@ def track_en_route_flight_by_callsign(callsign, tracking_mode=True):
         return
     address_to_flight = {}
     count_iterations = 0
+    detector = ObstacleDetector()
+
     with open_database_session() as session:
         while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
             # time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             address = get_flight_address_from_callsign(callsign)
-            update_flights(address_to_flight, [address], tracking_mode)
+            update_flights(detector, address_to_flight, [address], tracking_mode)
             count_iterations += 1
 
 
@@ -64,16 +66,17 @@ def track_en_route_flights_by_airports(
     
     address_to_flight = {}
     count_iterations = 0
+    detector = ObstacleDetector()
     
     with open_database_session() as session:
-        departure_airport = get_airport_from_airport_code(departure_airport_code)
-        destination_airport = get_airport_from_airport_code(destination_airport_code)
-    
+        departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
+        destination_airport = Airport.airport_from_icao_code(session, destination_airport_code)
+        
         while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
             time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if should_update_flight_addresses(count_iterations):
                 addresses = update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
-            update_flights(address_to_flight, addresses, tracking_mode)
+            update_flights(detector, address_to_flight, addresses, tracking_mode)
             count_iterations += 1
 
 
@@ -87,13 +90,14 @@ def track_en_route_flights(tracking_mode=True):
 
     address_to_flight = {}
     count_iterations = 0
+    detector = ObstacleDetector()
     
     with open_database_session() as session:
         while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
             time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if should_update_flight_addresses(count_iterations):
                 addresses = get_addresses_within_brazilian_airspace()
-            update_flights(address_to_flight, addresses, tracking_mode)
+            update_flights(detector, address_to_flight, addresses, tracking_mode)
             count_iterations += 1
 
 
@@ -152,16 +156,11 @@ def get_flight_plan_from_callsign(callsign):
     '''Return FlightPlan associated with callsign'''
     flight_plan = session.query(Airline).filter(FlightPlan.callsign == callsign).first()
     return flight_plan
-
-def get_airport_from_airport_code(airport_code):
-    '''Return airport from airport code'''
-    airport = session.query(Airport).filter(Airport.icao_code == airport_code).first()
-    return airport
     
-def update_flights(address_to_flight, addresses, tracking_mode):
+def update_flights(detector, address_to_flight, addresses, tracking_mode):
     '''Update address to flight mapping, which maps identifiers to flight objects and keeps track of current state-vector information'''
     update_finished_flights(address_to_flight, addresses, tracking_mode)
-    update_current_flights(address_to_flight, addresses, tracking_mode)
+    update_current_flights(detector, address_to_flight, addresses, tracking_mode)
 
 def update_finished_flights(address_to_flight, addresses, tracking_mode):
     '''Update finished flights in address to flight mappig'''
@@ -173,7 +172,11 @@ def update_finished_flights(address_to_flight, addresses, tracking_mode):
 
     for address in old_addresses:
         flight = address_to_flight[address]
-        normalize_flight_locations(flight, tracking_mode)
+        remove_duplicated_flight_locations(flight)
+        # IMPORTANT!! normalize flight locations if it is training mode
+        if not tracking_mode:
+            flight.flight_locations = normalize_flight_locations(flight.flight_locations)
+        # save objects in database
         if has_enough_flight_locations(flight):
             save_flight(flight) 
             # create_report(flight) 
@@ -185,7 +188,7 @@ def save_flight(flight):
     session.add(flight)
     session.commit()
 
-def update_current_flights(address_to_flight, addresses, tracking_mode):
+def update_current_flights(detector, address_to_flight, addresses, tracking_mode):
     '''Update address to flight mapping with current values of addresses'''
     logger.info('Update current flights: {0}'.format(addresses))
 
@@ -195,10 +198,13 @@ def update_current_flights(address_to_flight, addresses, tracking_mode):
             new_flight = get_flight_from_state(state, tracking_mode)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
-        flight.flight_locations.append(get_flight_location_from_state(state, flight))
-        # tracking conflicts being handled HERE
-        if tracking_mode:
-            check_weather_conflicts(session, flight)
+        flight.flight_locations.append(
+            get_flight_location_from_state(state, flight))
+        
+        # detection of obstacles are handled here
+        if tracking_mode and len(flight.flight_locations) >= 2:
+            _ = detector.check_obstacles_related_to_flight_location(
+                *(flight.flight_locations[-2:]))
 
 def get_flight_from_state(state, tracking_mode):
     '''Return flight object from state-vector.'''
@@ -271,15 +277,7 @@ def get_flight_plan_from_state(state):
     flight_plan = session.query(FlightPlan).filter(FlightPlan.callsign == state.callsign).first()
     return flight_plan
 
-def normalize_flight_locations(flight, tracking_mode):
-    '''Normalize flight locations information.'''
-    logger.info('Normalize flight locations of flight {0!r}'.format(flight))
-    filter_duplicated_flight_locations(flight)
-    if not tracking_mode:
-        flight.flight_locations = (FlightLocation.
-            normalize_flight_locations(flight.flight_locations))
-
-def filter_duplicated_flight_locations(flight):
+def remove_duplicated_flight_locations(flight):
     '''Remove duplicated flight locations.'''
     flight_locations = []
 

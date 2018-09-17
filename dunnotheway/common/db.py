@@ -34,3 +34,4 @@ def open_database_session():
 engine = create_db_engine()
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
+    

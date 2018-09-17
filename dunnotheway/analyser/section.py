@@ -8,12 +8,12 @@ from common.utils import distance_three_dimensions_coordinates
 from tracker.models.airport import Airport
 
 from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
-                       DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_SECTION,
-                       NUMBER_SECTIONS, logger)
+                       DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_SECTION)
 
 
 FlightLocationRecord = namedtuple(
-    'FlightLocationRecord', ['longitude', 'latitude', 'altitude', 'flight_id'])
+    'FlightLocationRecord', ['latitude', 'longitude', 'altitude', 'flight_id'])
+
 
 class Section:
     '''Section Wrapper Class
@@ -29,7 +29,7 @@ class Section:
         self.records = records # FlightLocationRecords
         self.classifier = HDBSCAN(
             min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
-            metric=Section._distance_between_records)
+            metric=distance_three_dimensions_coordinates)
         # clf = DBSCAN(
             #     eps=DBSCAN_MAXIMUM_DISTANCE, 
             #     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
@@ -38,10 +38,10 @@ class Section:
         self._label_to_records = defaultdict(list)
       
     @staticmethod
-    def sections_related_to_airports(departure_airport, destination_airport):
+    def sections_related_to_airports(session, departure_airport, destination_airport):
         '''Return sections from flight locations'''
         flight_locations = Airport.normalized_flight_locations_related_to_airports(
-            departure_airport, destination_airport)
+            session, departure_airport, destination_airport)
         longitude_based = Airport.should_be_longitude_based(
             departure_airport, destination_airport)
 
@@ -67,7 +67,7 @@ class Section:
 
     def records_from_label(self, label):
         if not self._has_run_classifier:
-            self.classifier.fit(self.records)
+            self.fit_classifier()
             self._has_run_classifier = True
         
             for record, label in zip(self.records, self.classifier.labels_):
@@ -75,6 +75,10 @@ class Section:
                     self._label_to_records[label].append(record)
 
         return self._label_to_records[label]
+
+    def fit_classifier(self):
+        self.classifier.fit(
+            [(lon, lat, alt) for lon, lat, alt, _ in self.records])
 
     def predict_label_from_record(self, record):
         ##### TODO: implement method
@@ -86,7 +90,7 @@ class Section:
     @property
     def labels(self):
         if not self._has_run_classifier:
-            self.classifier.fit(self.records)
+            self.fit_classifier()
             self._has_run_classifier = True
         return self.classifier.labels_
 
@@ -106,20 +110,13 @@ class Section:
     def _records_from_flight_locations(flight_locations):
         '''Return flight location records (longitude, latitude, altitude)'''
         return [FlightLocationRecord(
-                    fl.longitude, fl.latitude, fl.altitude, fl.flight_id) 
+                    float(fl.latitude), float(fl.longitude), float(fl.altitude), fl.flight_id) 
                     for fl in flight_locations]
 
     @staticmethod
     def _flight_locations_are_part_of_the_same_section(this_fl, that_fl, longitude_based):
-        return (float(this_fl.longitude) == float(that_fl.longitude) if longitude_based
-            else float(this_fl.latitude) == float(that_fl.latitude))
-
-    @staticmethod
-    def _distance_between_records(record1, record2):
-        return distance_three_dimensions_coordinates(
-            (record1.latitude, record1.longitude, record1.altitude),
-            (record2.latitude, record2.longitude, record2.altitude)
-        )
+        return (this_fl.longitude == that_fl.longitude if longitude_based
+            else this_fl.latitude == that_fl.latitude)
     
     # @staticmethod
     # def centroid_from_records(records):
