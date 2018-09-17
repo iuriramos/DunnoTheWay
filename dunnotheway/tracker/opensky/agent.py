@@ -170,7 +170,8 @@ def update_finished_flights(address_to_flight, addresses, tracking_mode):
         remove_duplicated_flight_locations(flight)
         # IMPORTANT!! normalize flight locations if it is training mode
         if not tracking_mode:
-            flight.flight_locations = normalize_flight_locations(flight.flight_locations)
+            flight.flight_locations = (
+                normalize_flight_locations(flight.flight_locations))
         # save objects in database
         if has_enough_flight_locations(flight):
             save_flight(flight) 
@@ -198,8 +199,9 @@ def update_current_flights(detector, address_to_flight, addresses, tracking_mode
         
         # detection of obstacles are handled here
         if tracking_mode and len(flight.flight_locations) >= 2:
-            _ = detector.check_obstacles_related_to_flight_location(
-                *(flight.flight_locations[-2:]))
+            prev, curr = flight.flight_locations[-2:]
+            if not FlightLocation.check_equal_flight_locations(prev, curr):
+                detector.check_obstacles_related_to_flight_location(prev, curr)
 
 
 def get_flight_from_state(state, tracking_mode):
@@ -242,12 +244,9 @@ def remove_duplicated_flight_locations(flight):
     '''Remove duplicated flight locations.'''
     flight_locations = []
 
-    def check_equal_flight_locations(prev, curr):
-        return prev and (prev.longitude, prev.latitude) == (curr.longitude, curr.latitude)
-
     prev = None
     for curr in flight.flight_locations:
-        if not check_equal_flight_locations(prev, curr):
+        if not FlightLocation.check_equal_flight_locations(prev, curr):
             flight_locations.append(curr)
         prev = curr
     

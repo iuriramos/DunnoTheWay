@@ -32,7 +32,7 @@ def _find_normalized_flight_locations_from_section_points(flight_locations, sect
 
     for prev_location, curr_location in zip(flight_locations, flight_locations[1:]):
         try:
-            while FlightLocation._check_mid_point_before_location(
+            while _check_mid_point_before_location(
                 mid_point, prev_location, longitude_based, follow_ascending_order): 
                 mid_point = next(section_points_iterator)
         except StopIteration:
@@ -40,9 +40,9 @@ def _find_normalized_flight_locations_from_section_points(flight_locations, sect
                         format(prev_location, curr_location, flight))
             break # leave the outer for loop
     
-        if FlightLocation._check_mid_point_within_flight_locations(
+        if _check_mid_point_within_flight_locations(
             mid_point, prev_location, curr_location, longitude_based):
-            normalized_flight_location = FlightLocation._normalize_flight_location(
+            normalized_flight_location = _normalize_flight_location(
                 mid_point, prev_location, curr_location, longitude_based)
             normalized_flight_locations.append(normalized_flight_location)
     

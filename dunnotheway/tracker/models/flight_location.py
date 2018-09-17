@@ -31,3 +31,8 @@ class FlightLocation(Base):
             latitude=self.latitude,
             altitude=self.altitude,
             flight=repr(self.flight))
+
+    @staticmethod
+    def check_equal_flight_locations(this, that):
+        return (this and that and 
+            (this.longitude, this.latitude) == (that.longitude, that.latitude))

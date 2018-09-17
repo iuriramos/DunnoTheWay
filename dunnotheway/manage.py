@@ -12,5 +12,5 @@ if __name__ == '__main__':
     # })
 
     tracker.track_en_route_flights_by_airports('SBBR', 'SBGR', 
-        round_trip_mode=True, tracking_mode=False)
+        round_trip_mode=True, tracking_mode=True)
     # builder.build_airways_related_to_airports('SBGR', 'SBBR')

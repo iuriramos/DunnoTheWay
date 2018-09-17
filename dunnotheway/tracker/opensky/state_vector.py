@@ -27,6 +27,10 @@ class StateVector:
         self.spi = spi
         self.position_source = position_source
 
+    def __repr__(self):
+        return 'StateVector({icao24})'.format(
+            icao24=repr(self.icao24))
+
     @staticmethod
     def build_from_dict(response_dict):
         if response_dict['states'] is None:
