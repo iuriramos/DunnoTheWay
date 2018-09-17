@@ -2,20 +2,22 @@ from common.log import logger
 from tracker.models.flight_location import FlightLocation
 from tracker.models.airport import Airport
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
+from tracker.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
 
 
-def normalize_flight_locations(flight_locations):
+def normalize_flight_locations(flight_locations, 
+    partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES):
     '''Filter flight locations for specific section points'''
     if not flight_locations:
         return flight_locations
     flight_locations.sort(key=lambda fl: fl.timestamp)
 
     fl = flight_locations[0]
-    flight, flight_plan = fl.flight, fl.flight.flight_plan
+    flight_plan = fl.flight.flight_plan
 
     section_points = Airport._section_points_related_to_airports(
         flight_plan.departure_airport, flight_plan.destination_airport, 
-        flight.partition_interval)
+        partition_interval)
     return _find_normalized_flight_locations_from_section_points(
         flight_locations, section_points)
 

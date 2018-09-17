@@ -37,10 +37,10 @@ class STSC:
         self._has_changed = False # careful with this side effect!
         return result
     
-    def cells_within_bounding_box(self, bbox, sorting_strategy=None):
+    def cells_within_bounding_box(self, bbox, sorting_key=None, sorting_reverse=False):
         if bbox not in self._bbox_to_cells:
             cells = self._filter_cells_by_bounding_box(self.cells, bbox)
-            cells = sorted(cells, key=sorting_strategy)
+            cells = sorted(cells, key=sorting_key, reverse=sorting_reverse)
             self._bbox_to_cells[bbox] = cells
         return self._bbox_to_cells[bbox]
 

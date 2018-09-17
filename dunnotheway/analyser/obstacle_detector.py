@@ -109,7 +109,7 @@ class ObstacleDetector:
         cells = self._stsc.cells_within_bounding_box(
             bbox, sorting_key=sorting_key, sorting_reverse=sorting_reverse)
         
-        if not cells:
+        if not cells or not sections:
             return intersections
 
         iter_sections, iter_cells = iter(sections), iter(cells)
@@ -167,19 +167,20 @@ class ObstacleDetector:
     @staticmethod
     def distance_between_section_and_cell(section, cell):
         if section.longitude_based:
-            section_reference_point = (cell.latitude, section.section_point)
+            section_reference_point = (float(cell.latitude), float(section.section_point))
         else: 
-            section_reference_point = (section.section_point, cell.longitude)
+            section_reference_point = (float(section.section_point), float(cell.longitude))
         
-        cell_reference_point = (cell.latitude, cell.longitude)
+        cell_reference_point = (cell.latitude, cell.longitude) # already casted to float
         return distance_two_dimensions_coordinates(
-            section_reference_point, cell_reference_point
-        )
+            section_reference_point, cell_reference_point)
 
     def _section_of_normalized_flight_location(
         self, normalized_flight_location, departure_airport, destination_airport):
-        sections = self._sections_from_airports(departure_airport, destination_airport)
-        longitude_based = normalized_flight_location.flight.longitude_based
+        sections = self._sections_from_airports(
+            departure_airport, destination_airport)
+        longitude_based = Airport.should_be_longitude_based(
+            departure_airport, destination_airport)
 
         for section in sections:
             if (section.section_point == 
