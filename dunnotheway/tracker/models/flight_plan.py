@@ -28,8 +28,8 @@ class FlightPlan(Base):
     def flight_plans_from_airports(session, departure_airport, destination_airport):
         '''Return flight plans from departure airport to destination airport'''
         flight_plans = session.query(FlightPlan).filter(
-            FlightPlan.departure_airport == departure_airport and
-            FlightPlan.destination_airport == destination_airport)
+            (FlightPlan.departure_airport == departure_airport),
+            (FlightPlan.destination_airport == destination_airport))
         return flight_plans
 
     @staticmethod
@@ -46,6 +46,7 @@ class FlightPlan(Base):
         airplane_designator, flight_number = callsign[:3], callsign[3:]
         return airplane_designator, flight_number
 
+    ##### TODO: Change method location: flight location or normalizer...
     @staticmethod
     def normalized_flight_locations_related_to_flight_plan(flight_plan):
         '''Return flight locations of flight plan'''

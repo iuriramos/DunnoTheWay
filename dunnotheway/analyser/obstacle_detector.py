@@ -192,8 +192,9 @@ class ObstacleDetector:
             departure_airport, destination_airport)
         
         if airports not in self._airports_to_sections:
-            self._airports_to_sections[airports] = (Section.
-                sections_related_to_airports(departure_airport, destination_airport))
+            self._airports_to_sections[airports] = (
+                Section.sections_related_to_airports(
+                    departure_airport, destination_airport))
 
         return self._airports_to_sections[airports]
         

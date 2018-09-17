@@ -29,6 +29,7 @@ class Airport(Base):
     def __repr__(self):
         return 'Airport({icao_code})'.format(icao_code=self.icao_code)
 
+    #### TODO: Move to Flight Location Class
     @staticmethod
     def normalized_flight_locations_related_to_airports(
         session, departure_airport, destination_airport):

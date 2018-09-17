@@ -120,7 +120,7 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
     '''Return flight ICAO24 addresses from departure airport to destination airport'''
     callsigns = get_callsigns_from_airports(departure_airport, destination_airport)
     bbox = bounding_box_related_to_airports(departure_airport, destination_airport)
-    addresses = get_addresses_from_callsigns_within_bounding_box(callsigns, bbox)    
+    addresses = get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)    
     logger.debug('Flight addresses found from {0!r} to {1!r}: {2}'.format(
         departure_airport, destination_airport, addresses))
     return addresses
@@ -128,7 +128,7 @@ def get_flight_addresses_from_airports(departure_airport, destination_airport):
 def get_addresses_within_brazilian_airspace():
     bbox = brazilian_airspace_bounding_box()
     callsigns = get_all_callsigns()
-    addresses = get_addresses_from_callsigns_within_bounding_box(callsigns, bbox)
+    addresses = get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)
     return addresses
 
 def get_all_callsigns():
@@ -144,7 +144,7 @@ def get_callsigns_from_airports(departure_airport, destination_airport):
 def get_callsigns_from_flight_plans(flight_plans):
     return {fp.callsign for fp in flight_plans}
 
-def get_addresses_from_callsigns_within_bounding_box(callsigns, bbox):
+def get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox):
     addresses = []
     states = get_states_from_bounding_box(bbox)
     for state in states:
@@ -199,10 +199,23 @@ def update_current_flights(detector, address_to_flight, addresses, tracking_mode
         
         # detection of obstacles are handled here
         if tracking_mode and len(flight.flight_locations) >= 2:
-            prev, curr = flight.flight_locations[-2:]
+            prev, curr = prev_and_curr_flight_locations_from_flight(flight) 
             if not FlightLocation.check_equal_flight_locations(prev, curr):
                 detector.check_obstacles_related_to_flight_location(prev, curr)
 
+def prev_and_curr_flight_locations_from_flight(flight):
+    flight_locations = flight.flight_locations
+    flight_locations_rev_iterator = reversed(flight_locations)
+    
+    curr = next(flight_locations_rev_iterator)
+    prev = next(flight_locations_rev_iterator)
+    
+    while FlightLocation.check_equal_flight_locations(prev, curr):
+        try:
+            prev = next(flight_locations_rev_iterator)
+        except StopIteration:
+            break 
+    return prev, curr
 
 def get_flight_from_state(state, tracking_mode):
     '''Return flight object from state-vector.'''

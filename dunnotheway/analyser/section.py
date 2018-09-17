@@ -4,6 +4,7 @@ import numpy as np
 from hdbscan import HDBSCAN
 from sklearn.cluster import DBSCAN
 
+from common.db import open_database_session
 from common.utils import distance_three_dimensions_coordinates
 from tracker.models.airport import Airport
 
@@ -38,10 +39,12 @@ class Section:
         self._label_to_records = defaultdict(list)
       
     @staticmethod
-    def sections_related_to_airports(session, departure_airport, destination_airport):
+    def sections_related_to_airports(departure_airport, destination_airport):
         '''Return sections from flight locations'''
-        flight_locations = Airport.normalized_flight_locations_related_to_airports(
-            session, departure_airport, destination_airport)
+        with open_database_session() as session:
+            flight_locations = Airport.normalized_flight_locations_related_to_airports(
+                session, departure_airport, destination_airport)
+        
         longitude_based = Airport.should_be_longitude_based(
             departure_airport, destination_airport)
 
