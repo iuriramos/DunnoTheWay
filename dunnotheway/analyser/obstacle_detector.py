@@ -30,27 +30,31 @@ class ObstacleDetector:
         '''Check for obstacles in current flight location'''
         flight = prev_flight_location.flight
         flight_plan = flight.flight_plan
-
         airports = ObstacleDetector.DepartureAndDestinationAirports(
             flight_plan.departure_airport, flight_plan.destination_airport)
+        normalized_flight_locations = normalize_flight_locations( 
+            [prev_flight_location, curr_flight_location])
+        
+        if not normalized_flight_locations:
+            return []
+
+        normalized_flight_location = normalized_flight_locations[0]
+        curr_flight_ids = self.flight_ids_in_the_same_airway_of_normalized_flight_location(
+            normalized_flight_location, airports)
+
         longitude_based = Airport.should_be_longitude_based(*airports)
         follow_ascending_order = Airport.follow_ascending_order(*airports)
         intersections = self.check_intersections_related_to_airports(*airports)
-        
-        normalized_flight_location = normalize_flight_locations(
-            [prev_flight_location, curr_flight_location])
-        curr_flight_ids = self.flight_ids_in_the_same_airway_of_normalized_flight_location(
-            normalized_flight_location, airports)
         
         intersection_index = 0
         
         def move_intersection_iterator(flight_location, intersection):
             return ((follow_ascending_order and 
                     reference_point(flight_location, longitude_based) > 
-                    reference_point(intersection.cell, longitude_based)) or 
+                    reference_point(intersection.convection_cell, longitude_based)) or 
                 (not follow_ascending_order and 
                     reference_point(flight_location, longitude_based) < 
-                    reference_point(intersection.cell, longitude_based)))
+                    reference_point(intersection.convection_cell, longitude_based)))
                 
         while intersection_index < len(intersections):
                 intersection = intersections[intersection_index]
@@ -73,11 +77,13 @@ class ObstacleDetector:
         self, normalized_flight_location, airports):
         section = self._section_of_normalized_flight_location(
             normalized_flight_location, *airports)
+        if not section:
+            return set()
         fl = normalized_flight_location
         record = FlightLocationRecord(
             fl.altitude, fl.longitude, fl.altitude, fl.flight_id)
-        label = section.predict_label(record)
-        records = section.records_from_label(labels=label)
+        label = section.predict_label_from_record(record)
+        records = section.records_from_label(label=label)
         return {record.flight_id for record in records}
 
 
@@ -149,17 +155,17 @@ class ObstacleDetector:
             return merged_intersections
         
         prev = intersections[0]
-        flight_ids = prev.flight_ids
+        convection_cell, flight_ids = prev.convection_cell, prev.flight_ids
         for curr in intersections[1:]:
-            if prev.convection_cell is curr.convection_cell:
+            if convection_cell is curr.convection_cell:
                 flight_ids.update(curr.flight_ids)
             else:
-                merged_intersection = Intersection(prev.convection_cell, flight_ids)
+                merged_intersection = Intersection(convection_cell, flight_ids)
                 merged_intersections.append(merged_intersection)
                 flight_ids = curr.flight_ids
-            prev = curr
+            convection_cell = curr.convection_cell
         # include the last entry as well
-        merged_intersection = Intersection(prev.convection_cell, flight_ids)
+        merged_intersection = Intersection(convection_cell, flight_ids)
         merged_intersections.append(merged_intersection)
 
         return merged_intersections   
@@ -182,9 +188,13 @@ class ObstacleDetector:
         longitude_based = Airport.should_be_longitude_based(
             departure_airport, destination_airport)
 
+        def is_normalized_flight_location_inside_section(normalize_flight_locations, section):
+            return (float(section.section_point) == 
+                float(reference_point(normalized_flight_location, longitude_based)))
+
         for section in sections:
-            if (section.section_point == 
-                reference_point(normalized_flight_location, longitude_based)):
+            if is_normalized_flight_location_inside_section(
+                normalize_flight_locations, section):
                 return section
         return None
     

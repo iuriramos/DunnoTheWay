@@ -37,6 +37,9 @@ class Section:
             #     metric=distance_between_self.records)
         self._has_run_classifier = False
         self._label_to_records = defaultdict(list)
+
+    def __repr__(self):
+        return 'Section({sp})'.format(sp=self.section_point)
       
     @staticmethod
     def sections_related_to_airports(departure_airport, destination_airport):
@@ -70,18 +73,17 @@ class Section:
 
     def records_from_label(self, label):
         if not self._has_run_classifier:
-            self.fit_classifier()
+            self.run_classifier()
             self._has_run_classifier = True
-        
-            for record, label in zip(self.records, self.classifier.labels_):
-                if label != -1: # unclassified records
-                    self._label_to_records[label].append(record)
-
         return self._label_to_records[label]
 
-    def fit_classifier(self):
-        self.classifier.fit(
-            [(lon, lat, alt) for lon, lat, alt, _ in self.records])
+    def run_classifier(self):
+        self.classifier.fit([(record.latitude, record.longitude, record.altitude) 
+            for record in self.records])
+        
+        for record, label in zip(self.records, self.classifier.labels_):
+            if label != -1: # unclassified records
+                self._label_to_records[label].append(record)
 
     def predict_label_from_record(self, record):
         ##### TODO: implement method
@@ -93,7 +95,7 @@ class Section:
     @property
     def labels(self):
         if not self._has_run_classifier:
-            self.fit_classifier()
+            self.run_classifier()
             self._has_run_classifier = True
         return self.classifier.labels_
 

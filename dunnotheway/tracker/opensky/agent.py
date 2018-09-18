@@ -194,28 +194,16 @@ def update_current_flights(detector, address_to_flight, addresses, tracking_mode
             new_flight = get_flight_from_state(state, tracking_mode)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
-        flight.flight_locations.append(
-            get_flight_location_from_state_and_flight(state, flight))
+        _ = get_flight_location_from_state_and_flight(state, flight) # append it automatically
         
         # detection of obstacles are handled here
         if tracking_mode and len(flight.flight_locations) >= 2:
-            prev, curr = prev_and_curr_flight_locations_from_flight(flight) 
+            # prev, curr = prev_and_curr_flight_locations_from_flight(flight) 
+            prev, curr = flight.flight_locations[-2:]
             if not FlightLocation.check_equal_flight_locations(prev, curr):
-                detector.check_obstacles_related_to_flight_location(prev, curr)
+                _ = (detector.
+                    check_obstacles_related_to_flight_location(prev, curr))
 
-def prev_and_curr_flight_locations_from_flight(flight):
-    flight_locations = flight.flight_locations
-    flight_locations_rev_iterator = reversed(flight_locations)
-    
-    curr = next(flight_locations_rev_iterator)
-    prev = next(flight_locations_rev_iterator)
-    
-    while FlightLocation.check_equal_flight_locations(prev, curr):
-        try:
-            prev = next(flight_locations_rev_iterator)
-        except StopIteration:
-            break 
-    return prev, curr
 
 def get_flight_from_state(state, tracking_mode):
     '''Return flight object from state-vector.'''
