@@ -132,7 +132,7 @@ def get_addresses_within_brazilian_airspace():
     return addresses
 
 def get_all_callsigns():
-    flight_plans = FlightPlan.all_flight_plans()
+    flight_plans = FlightPlan.all_flight_plans(session)
     return get_callsigns_from_flight_plans(flight_plans)
         
 def get_callsigns_from_airports(departure_airport, destination_airport):
