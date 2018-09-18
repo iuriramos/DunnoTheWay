@@ -225,6 +225,9 @@ class ObstacleDetector:
                 (record.latitude, record.longitude), (cell.latitude, cell.longitude))
             return distance < cell.radius
 
+        #### TODO: forcing update on section labels
+        _ = section.labels 
+        
         labels = []
         for label, records in section:
             for record in records:

@@ -21,7 +21,7 @@ def run_classifier_before(func):
         if not self._has_run_classifier:
             self.run_classifier()
             self._has_run_classifier = True
-        return func(*args, **kwargs)
+        return func(self, *args, **kwargs)
     return wrapper
 
 
@@ -89,7 +89,7 @@ class Section:
                 self._label_to_records[label].append(record)
     
     def __iter__(self):
-        yield from self._label_to_records.items()    
+        yield from self._label_to_records.items()
 
     @run_classifier_before
     def records_from_label(self, label):
