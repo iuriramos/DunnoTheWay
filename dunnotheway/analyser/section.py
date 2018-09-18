@@ -1,7 +1,7 @@
 from collections import defaultdict, namedtuple
 
 import numpy as np
-from hdbscan import HDBSCAN
+import hdbscan
 from sklearn.cluster import DBSCAN
 
 from common.db import open_database_session
@@ -16,6 +16,15 @@ FlightLocationRecord = namedtuple(
     'FlightLocationRecord', ['latitude', 'longitude', 'altitude', 'flight_id'])
 
 
+def run_classifier_before(func):
+    def wrapper(self, *args, **kwargs):
+        if not self._has_run_classifier:
+            self.run_classifier()
+            self._has_run_classifier = True
+        return func(*args, **kwargs)
+    return wrapper
+
+
 class Section:
     '''Section Wrapper Class
     
@@ -28,7 +37,7 @@ class Section:
         self.section_point = section_point
         self.longitude_based = longitude_based
         self.records = records # FlightLocationRecords
-        self.classifier = HDBSCAN(
+        self.classifier = hdbscan.HDBSCAN(
             min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
             metric=distance_three_dimensions_coordinates)
         # clf = DBSCAN(
@@ -71,12 +80,6 @@ class Section:
 
         return sections
 
-    def records_from_label(self, label):
-        if not self._has_run_classifier:
-            self.run_classifier()
-            self._has_run_classifier = True
-        return self._label_to_records[label]
-
     def run_classifier(self):
         self.classifier.fit([(record.latitude, record.longitude, record.altitude) 
             for record in self.records])
@@ -84,21 +87,25 @@ class Section:
         for record, label in zip(self.records, self.classifier.labels_):
             if label != -1: # unclassified records
                 self._label_to_records[label].append(record)
-
-    def predict_label_from_record(self, record):
-        ##### TODO: implement method
-        return -1
     
     def __iter__(self):
-        yield from self._label_to_records.items()
+        yield from self._label_to_records.items()    
 
+    @run_classifier_before
+    def records_from_label(self, label):
+        return self._label_to_records[label]
+
+    @run_classifier_before
+    def predict_label_from_record(self, record):
+        labels, _ = hdbscan.approximate_predict(
+            self.classifier, [record])
+        return labels[0]
+    
     @property
+    @run_classifier_before
     def labels(self):
-        if not self._has_run_classifier:
-            self.run_classifier()
-            self._has_run_classifier = True
         return self.classifier.labels_
-
+    
     @staticmethod
     def _from_flight_locations(flight_locations):
         '''Return a SINGLE section from flight locations'''
