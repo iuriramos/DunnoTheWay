@@ -184,10 +184,11 @@ def update_finished_flights(
 
     for address in old_addresses:
         flight = address_to_flight[address]
+        flight_plan = flight.flight_plan
         remove_duplicated_flight_locations(flight)
         # IMPORTANT!! normalize flight locations if it is training mode
         if (not tracking_mode and 
-            not check_flight_in_tracking_list(flight, tracking_list)):
+            not check_flight_plan_in_tracking_list(flight_plan, tracking_list)):
             flight.flight_locations = (
                 normalize_flight_locations(flight.flight_locations))
         # save objects in database
@@ -210,13 +211,14 @@ def update_current_flights(
     for state in get_states_from_addresses(addresses):
         address = state.address
         if address not in address_to_flight:
-            new_flight = get_flight_from_state(state, tracking_mode)
+            new_flight = get_flight_from_state(state, tracking_mode, tracking_list)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
+        flight_plan = flight.flight_plan
         _ = get_flight_location_from_state_and_flight(state, flight) # append it automatically
         
         # detection of obstacles are handled here
-        if ((tracking_mode or check_flight_in_tracking_list(flight, tracking_list)) and 
+        if ((tracking_mode or check_flight_plan_in_tracking_list(flight_plan, tracking_list)) and 
             len(flight.flight_locations) >= 2):
             # prev, curr = prev_and_curr_flight_locations_from_flight(flight) 
             prev, curr = flight.flight_locations[-2:]
@@ -224,24 +226,24 @@ def update_current_flights(
                 _ = (detector.
                     check_obstacles_related_to_flight_location(prev, curr))
 
-def check_flight_in_tracking_list(flight, tracking_list):
+def check_flight_plan_in_tracking_list(flight_plan, tracking_list):
     tracking_list = tracking_list or []
-    flight_plan = flight.flight_plan
-
+    
     for departure_airport, destination_airport in tracking_list:
         if (flight_plan.departure_airport == departure_airport and
             flight_plan.destination_airport == destination_airport):
             return True
     return False
 
-def get_flight_from_state(state, tracking_mode):
+def get_flight_from_state(state, tracking_mode, tracking_list):
     '''Return flight object from state-vector.'''
     flight_plan = FlightPlan.flight_plan_from_callsign(session, state.callsign)
     airplane = StateVector.airplane_from_state(session, state)
     longitude_based = Airport.should_be_longitude_based(
         flight_plan.departure_airport, flight_plan.destination_airport)
     
-    if not tracking_mode:
+    if (not tracking_mode and 
+        not check_flight_plan_in_tracking_list(flight_plan, tracking_list)):
         flight = Flight (
             airplane=airplane,
             flight_plan=flight_plan,
