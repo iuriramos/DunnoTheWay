@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from common.log import logger
 from common.utils import distance_two_dimensions_coordinates
 from weather.stsc import STSC
 from tracker.models.airport import Airport
@@ -28,6 +29,9 @@ class ObstacleDetector:
     def check_obstacles_related_to_flight_location(
         self, prev_flight_location, curr_flight_location):
         '''Check for obstacles in current flight location'''
+        logger.debug('Check for weather obstacle in current flight location {0}'.
+            format(curr_flight_location))
+    
         flight = prev_flight_location.flight
         flight_plan = flight.flight_plan
         airports = ObstacleDetector.DepartureAndDestinationAirports(
@@ -71,6 +75,9 @@ class ObstacleDetector:
             obstacle = Obstacle(curr_flight_location, cell, how_likely)
             obstacles.append(obstacle)
 
+        logger.debug('Found the following obstacles {0} for flight location {1}'.
+            format(obstacles, curr_flight_location))
+
         return obstacles
 
     def flight_ids_in_the_same_airway_of_normalized_flight_location(
@@ -84,7 +91,8 @@ class ObstacleDetector:
             fl.altitude, fl.longitude, fl.altitude, fl.flight_id)
         label = section.predict_label_from_record(record)
         records = section.records_from_label(label=label)
-        return {record.flight_id for record in records}
+        flight_ids = {record.flight_id for record in records}
+        return flight_ids
 
 
     def check_intersections_related_to_airports(self, departure_airport, destination_airport):
@@ -147,7 +155,11 @@ class ObstacleDetector:
             except StopIteration:
                 break
 
-        return self.merge_intersections_with_the_same_convection_cell(intersections)
+        merged_intersections = self.merge_intersections_with_the_same_convection_cell(intersections)
+        logger.debug('Found following intersections {0} from departure {1} to destination {2}'.
+            format(merged_intersections, departure_airport, destination_airport))
+    
+        return merged_intersections
 
     def merge_intersections_with_the_same_convection_cell(self, intersections):
         merged_intersections = []
@@ -211,6 +223,9 @@ class ObstacleDetector:
         
     @staticmethod
     def likelihood_of_encounter_obstacle(curr_flight_ids, next_flight_ids):
+        logger.debug('Assessing likelihood of encountering obstacle {0} out of {1}'.
+            format(curr_flight_ids, next_flight_ids))
+    
         if len(curr_flight_ids) == 0:
             return 0.0
         return (

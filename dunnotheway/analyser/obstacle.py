@@ -22,5 +22,4 @@ class Obstacle(Base):
         return 'Obstacle({fl}, {cc}, {hl})'.format(
             fl=repr(self.flight_location),
             cc=repr(self.convection_cell),
-            hl=self.how_likely
-        )
+            hl=self.how_likely)
