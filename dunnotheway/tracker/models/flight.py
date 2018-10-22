@@ -13,16 +13,14 @@ class Flight(Base):
     airplane = relationship('Airplane', backref='flights')
     flight_plan_id = Column(Integer, ForeignKey('flight_plans.id'))
     flight_plan = relationship('FlightPlan', backref='flights')
-    partition_interval = Column(Numeric)
-    longitude_based = Column(Boolean)
     flight_locations = relationship('FlightLocation', back_populates='flight', cascade="all, delete-orphan")
 
-    def __init__(self, airplane, flight_plan, partition_interval=None, longitude_based=None):
+    def __init__(self, airplane, flight_plan):
         self.created_date = datetime.now()
         self.airplane = airplane
         self.flight_plan = flight_plan
-        self.partition_interval = partition_interval
-        self.longitude_based = longitude_based
-
+        
     def __repr__(self):
-        return 'Flight({airplane})'.format(airplane=repr(self.airplane))
+        return 'Flight({id}, {airplane})'.format(
+            id=self.id,
+            airplane=repr(self.airplane))

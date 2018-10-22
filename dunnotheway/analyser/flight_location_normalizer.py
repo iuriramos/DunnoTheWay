@@ -60,7 +60,7 @@ def _check_mid_point_before_location(
         base_point = float(location.longitude)
     else: # latitude based
         base_point = float(location.latitude)
-    logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_ascending_order]))
+    # logger.debug('Check if mid_point {0} before location {1} following {2} order'.format(mid_point, base_point, ('decreasing', 'increasing')[follow_ascending_order]))
     return mid_point < base_point if follow_ascending_order else mid_point > base_point
 
 
@@ -75,8 +75,8 @@ def _check_mid_point_within_flight_locations(
         start_interval, end_interval = (
             float(prev_location.latitude), float(curr_location.latitude))
     
-    logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.
-                format(mid_point, start_interval, end_interval))
+    # logger.debug('Check if mid_point {0} within interval [{1}, {2}]'.
+    #             format(mid_point, start_interval, end_interval))
     return (start_interval <= mid_point < end_interval or 
             end_interval <= mid_point < start_interval)
 

@@ -18,8 +18,8 @@ class ConvectionCell(Base):
         self.radius = radius
 
     def __repr__(self):
-        return 'ConvectionCell({0}, {1}, {2})'.format(
-            self.latitude, self.longitude, self.radius)
+        return 'ConvectionCell({0}, {1}, {2}, {3})'.format(
+            self.id, self.latitude, self.longitude, self.radius)
 
     def __hash__(self):
         return hash((self.latitude, self.longitude, self.radius))

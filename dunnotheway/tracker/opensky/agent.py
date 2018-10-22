@@ -168,13 +168,11 @@ def get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox):
 def update_flights(
     detector, address_to_flight, addresses, tracking_mode, tracking_list=None):
     '''Update address to flight mapping, which maps identifiers to flight objects and keeps track of current state-vector information'''
-    update_finished_flights(
-        address_to_flight, addresses, tracking_mode, tracking_list)
+    update_finished_flights(address_to_flight, addresses)
     update_current_flights(
         detector, address_to_flight, addresses, tracking_mode, tracking_list)
 
-def update_finished_flights(
-    address_to_flight, addresses, tracking_mode, tracking_list):
+def update_finished_flights(address_to_flight, addresses):
     '''Update finished flights in address to flight mappig'''
     old_addresses = address_to_flight.keys() - addresses
     logger.info('Update finished flights (addresses): {0}'.format(old_addresses))
@@ -184,17 +182,10 @@ def update_finished_flights(
 
     for address in old_addresses:
         flight = address_to_flight[address]
-        flight_plan = flight.flight_plan
         remove_duplicated_flight_locations(flight)
-        # IMPORTANT!! normalize flight locations if it is training mode
-        if (not tracking_mode and 
-            not check_flight_plan_in_tracking_list(flight_plan, tracking_list)):
-            flight.flight_locations = (
-                normalize_flight_locations(flight.flight_locations))
         # save objects in database
         if has_enough_flight_locations(flight):
             save_flight(flight) 
-            # create_report(flight) 
         del address_to_flight[address]
 
 def save_flight(flight):
@@ -211,7 +202,7 @@ def update_current_flights(
     for state in get_states_from_addresses(addresses):
         address = state.address
         if address not in address_to_flight:
-            new_flight = get_flight_from_state(state, tracking_mode, tracking_list)
+            new_flight = get_flight_from_state(state)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
         flight_plan = flight.flight_plan
@@ -235,27 +226,14 @@ def check_flight_plan_in_tracking_list(flight_plan, tracking_list):
             return True
     return False
 
-def get_flight_from_state(state, tracking_mode, tracking_list):
+def get_flight_from_state(state):
     '''Return flight object from state-vector.'''
     flight_plan = FlightPlan.flight_plan_from_callsign(session, state.callsign)
     airplane = StateVector.airplane_from_state(session, state)
-    longitude_based = Airport.should_be_longitude_based(
-        flight_plan.departure_airport, flight_plan.destination_airport)
+    flight = Flight(
+        airplane=airplane,
+        flight_plan=flight_plan)
     
-    if (not tracking_mode and 
-        not check_flight_plan_in_tracking_list(flight_plan, tracking_list)):
-        flight = Flight (
-            airplane=airplane,
-            flight_plan=flight_plan,
-            partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-            longitude_based=longitude_based
-        )
-    else:
-        flight = Flight (
-            airplane=airplane,
-            flight_plan=flight_plan
-        )
-
     logger.debug('Create new flight object: {0!r}'.format(flight))
     return flight
 
@@ -269,7 +247,7 @@ def get_flight_location_from_state_and_flight(state, flight):
         speed=state.velocity,
         flight=flight
     )        
-    logger.debug('Create new flight location object: {0!r}'.format(flight_location))
+    # logger.debug('Create new flight location object: {0!r}'.format(flight_location))
     return flight_location
 
 def remove_duplicated_flight_locations(flight):

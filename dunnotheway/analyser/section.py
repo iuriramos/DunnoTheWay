@@ -4,6 +4,7 @@ import numpy as np
 import hdbscan
 from sklearn.cluster import DBSCAN
 
+from common.log import logger
 from common.db import open_database_session
 from common.utils import distance_three_dimensions_coordinates
 from tracker.models.airport import Airport
@@ -37,13 +38,13 @@ class Section:
         self.section_point = section_point
         self.longitude_based = longitude_based
         self.records = records # FlightLocationRecords
-        self.classifier = hdbscan.HDBSCAN(
-            min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
-            metric=distance_three_dimensions_coordinates)
-        # clf = DBSCAN(
-            #     eps=DBSCAN_MAXIMUM_DISTANCE, 
-            #     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
-            #     metric=distance_between_self.records)
+        # self.classifier = hdbscan.HDBSCAN(
+        #     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
+        #     metric=distance_three_dimensions_coordinates)
+        self.classifier = DBSCAN(
+                eps=DBSCAN_MAXIMUM_DISTANCE, 
+                min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
+                metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_records = defaultdict(list)
 
@@ -97,9 +98,14 @@ class Section:
 
     @run_classifier_before
     def predict_label_from_record(self, record):
-        labels, _ = hdbscan.approximate_predict(
-            self.classifier, [record])
-        return labels[0]
+        try:
+            labels, _ = hdbscan.approximate_predict(
+                self.classifier, [record])
+            label = labels[0]
+        except AttributeError as e:
+            logger.error(str(e))
+            label = -1
+        return label
     
     @property
     @run_classifier_before

@@ -22,7 +22,8 @@ def build_airways_related_to_airports(
 
     def filter_sections(sections):
         '''Return at most `NUMBER_SECTIONS` sections'''
-        step = max(1, len(sections)//number_sections)
+        # step = max(1, len(sections)//number_sections)
+        step = 1
         return sections[::step]
     
     with open_database_session() as session:
@@ -31,7 +32,7 @@ def build_airways_related_to_airports(
         destination_airport = Airport.airport_from_icao_code(
             session, destination_airport_code)
         sections = Section.sections_related_to_airports(
-            session, departure_airport, destination_airport)
+            departure_airport, destination_airport)
         
         for section in filter_sections(sections):
             _plot_flight_records(section.records, section.labels, centroids=[])
