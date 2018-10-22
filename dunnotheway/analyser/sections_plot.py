@@ -22,8 +22,7 @@ def build_airways_related_to_airports(
 
     def filter_sections(sections):
         '''Return at most `NUMBER_SECTIONS` sections'''
-        # step = max(1, len(sections)//number_sections)
-        step = 1
+        step = max(1, len(sections)//number_sections)
         return sections[::step]
     
     with open_database_session() as session:
