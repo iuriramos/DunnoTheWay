@@ -4,6 +4,9 @@ notebooks/
 logs/
 reports/
 .vscode/
+boeing/
+dissertacao/
+papers/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
