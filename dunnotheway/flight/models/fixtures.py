@@ -11,7 +11,7 @@ from flight.models.flight_location import FlightLocation
 from flight.models.flight_plan import FlightPlan
 
 from analyser.obstacle import Obstacle
-from weather.convection_cell import ConvectionCell
+from weather.models.convection_cell import ConvectionCell
 
 
 def setup_environment():

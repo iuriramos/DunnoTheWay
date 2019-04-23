@@ -10,7 +10,7 @@ import flight.models.fixtures
 from flight.models.airport import Airport
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
-from weather.convection_cell import ConvectionCell
+from weather.models.convection_cell import ConvectionCell
 from analyser.section import Section
 from analyser.obstacle import Obstacle
 from analyser.obstacle_detector import ObstacleDetector
