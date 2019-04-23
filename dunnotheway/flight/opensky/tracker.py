@@ -32,6 +32,10 @@ from .state_vector import StateVector
 session = None
 
 
+def search_flight_deviations():
+    # TODO: construct method
+    pass
+
 def track_en_route_flight_by_callsign(callsign, tracking_mode=True):
     '''Keep track of flight information from its callsign'''
     global session

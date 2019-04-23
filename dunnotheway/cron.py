@@ -1,5 +1,5 @@
 import flight.models.fixtures
-import flight.opensky.agent as flight_tracker
+import flight.opensky.tracker as flight_tracker
 import analyser.sections_plot as builder
 
 
