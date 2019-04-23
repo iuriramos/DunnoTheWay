@@ -8,7 +8,6 @@ if __name__ == '__main__':
     fire.Fire({
         # offline methods
         'track-en-route-flights': flight_tracker.track_en_route_flights,
-        'track-en-route-flight': flight_tracker.track_en_route_flight_by_callsign,
         'track-airports': flight_tracker.track_en_route_flights_by_airports,
         'track-convection-cells': weather_tracker.track_convection_cells,
         # online methods

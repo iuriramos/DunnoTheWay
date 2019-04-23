@@ -36,25 +36,6 @@ def search_flight_deviations():
     # TODO: construct method
     pass
 
-def track_en_route_flight_by_callsign(callsign, tracking_mode=True):
-    '''Keep track of flight information from its callsign'''
-    global session
-    address_to_flight = {}
-    count_iterations = 0
-    detector = ObstacleDetector()
-
-    with open_database_session() as session:
-        if not FlightPlan.flight_plan_from_callsign(session, callsign):
-            logger.error('Callsign does not exist.')
-            return
-
-        while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
-            # time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
-            address = get_flight_address_from_callsign(callsign)
-            update_flights(detector, address_to_flight, [address], tracking_mode)
-            count_iterations += 1
-
-
 def track_en_route_flights_by_airports(
     departure_airport_code, destination_airport_code, 
     round_trip_mode=False, tracking_mode=True):
