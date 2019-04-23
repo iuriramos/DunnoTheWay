@@ -3,7 +3,7 @@ from collections import namedtuple
 from common.log import logger
 from common.utils import distance_two_dimensions_coordinates
 
-from weather.stsc import STSC
+from weather.stsc.api import STSC
 from flight.models.airport import Airport
 from flight.models.bounding_box import bounding_box_related_to_airports
 from analyser.flight_location_normalizer import normalize_flight_locations

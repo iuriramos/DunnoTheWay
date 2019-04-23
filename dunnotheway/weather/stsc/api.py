@@ -1,7 +1,7 @@
 import time
 import requests
 from flight.models.airport import Airport
-from .convection_cell import ConvectionCell
+from weather.convection_cell import ConvectionCell
 
 
 class STSC:
