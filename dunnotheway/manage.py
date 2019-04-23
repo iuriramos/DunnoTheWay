@@ -3,6 +3,7 @@ import tracker.models.fixtures
 import tracker.opensky.agent as tracker
 import analyser.sections_plot as builder
 
+
 if __name__ == '__main__':
     fire.Fire({
         'track-en-route-flights': tracker.track_en_route_flights,
