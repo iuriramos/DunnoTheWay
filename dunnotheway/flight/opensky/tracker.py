@@ -17,7 +17,7 @@ from flight.models.bounding_box import (BoundingBox,
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
 from flight.models.flight_plan import FlightPlan
-from flight.opensky.plot import create_report
+from flight.opensky._plot import create_report
 from flight.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
                                       ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
                                       MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
