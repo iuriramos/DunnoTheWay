@@ -1,6 +1,6 @@
 import time
 import requests
-from tracker.models.airport import Airport
+from flight.models.airport import Airport
 from .convection_cell import ConvectionCell
 
 

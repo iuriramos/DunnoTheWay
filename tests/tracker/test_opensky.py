@@ -1,6 +1,6 @@
 import pytest
 from .. import context
-from tracker import opensky
+from flight import opensky
 
 def test_get_flight_address_from_callsign():
     assert False

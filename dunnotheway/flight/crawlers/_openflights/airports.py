@@ -9,7 +9,7 @@ import pandas as pd
 import requests
 
 from common.db import open_database_session
-from tracker.models.airport import Airport
+from flight.models.airport import Airport
 
 sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 

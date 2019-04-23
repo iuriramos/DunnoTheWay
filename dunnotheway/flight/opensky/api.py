@@ -3,7 +3,7 @@ import time
 import requests
 
 from common.log import logger
-from tracker.opensky.settings import (ITERATIONS_LIMIT_TO_RETRY_NEW_CONNECTION,
+from flight.opensky.settings import (ITERATIONS_LIMIT_TO_RETRY_NEW_CONNECTION,
                                       OPEN_SKY_URL,
                                       SLEEP_TIME_TO_RETRY_NEW_CONNECTION_IN_SECS)
 

@@ -6,10 +6,10 @@ from collections import defaultdict, namedtuple
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
 
-import tracker.models.fixtures
-from tracker.models.airport import Airport
-from tracker.models.flight import Flight
-from tracker.models.flight_location import FlightLocation
+import flight.models.fixtures
+from flight.models.airport import Airport
+from flight.models.flight import Flight
+from flight.models.flight_location import FlightLocation
 from weather.convection_cell import ConvectionCell
 from analyser.section import Section
 from analyser.obstacle import Obstacle

@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Numeric, String, Integer
 from common.db import Base
-from tracker.models.bounding_box import BoundingBox
-from tracker.models.flight_plan import FlightPlan
-from tracker.models.flight_location import FlightLocation
+from flight.models.bounding_box import BoundingBox
+from flight.models.flight_plan import FlightPlan
+from flight.models.flight_location import FlightLocation
 
 
 class Airport(Base):

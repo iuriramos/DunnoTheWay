@@ -1,5 +1,5 @@
-from tracker.models.airplane import Airplane
-from tracker.models.airline import Airline
+from flight.models.airplane import Airplane
+from flight.models.airline import Airline
 
 
 class StateVector:

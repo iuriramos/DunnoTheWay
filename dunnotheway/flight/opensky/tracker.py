@@ -8,17 +8,17 @@ from analyser.obstacle_detector import ObstacleDetector
 from common.db import open_database_session
 from common.log import logger
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
-from tracker.models.airline import Airline
-from tracker.models.airplane import Airplane
-from tracker.models.airport import Airport
-from tracker.models.bounding_box import (BoundingBox,
+from flight.models.airline import Airline
+from flight.models.airplane import Airplane
+from flight.models.airport import Airport
+from flight.models.bounding_box import (BoundingBox,
                                          bounding_box_related_to_airports,
                                          brazilian_airspace_bounding_box)
-from tracker.models.flight import Flight
-from tracker.models.flight_location import FlightLocation
-from tracker.models.flight_plan import FlightPlan
-from tracker.opensky.plot import create_report
-from tracker.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
+from flight.models.flight import Flight
+from flight.models.flight_location import FlightLocation
+from flight.models.flight_plan import FlightPlan
+from flight.opensky.plot import create_report
+from flight.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
                                       ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
                                       MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
                                       SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,

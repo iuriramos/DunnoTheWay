@@ -3,12 +3,12 @@ from datetime import date
 from sqlalchemy import inspect
 
 from common.db import Session, engine, Base
-from tracker.models.airline import Airline
-from tracker.models.airplane import Airplane
-from tracker.models.airport import Airport
-from tracker.models.flight import Flight
-from tracker.models.flight_location import FlightLocation
-from tracker.models.flight_plan import FlightPlan
+from flight.models.airline import Airline
+from flight.models.airplane import Airplane
+from flight.models.airport import Airport
+from flight.models.flight import Flight
+from flight.models.flight_location import FlightLocation
+from flight.models.flight_plan import FlightPlan
 
 from analyser.obstacle import Obstacle
 from weather.convection_cell import ConvectionCell

@@ -49,7 +49,7 @@ def plot_flight_location_params(flight):
 
 def get_reports_filepath(flight):
     '''Return file path of the flight report'''
-    REPORTS_DIR = os.path.join(BASE_DIR, 'tracker', 'reports')
+    REPORTS_DIR = os.path.join(BASE_DIR, 'flight', 'reports')
     subdir_name = flight.flight_plan.departure_airport.icao_code + '-' + flight.flight_plan.destination_airport.icao_code
     REPORTS_SUBDIR = os.path.join(REPORTS_DIR, subdir_name)
     if not os.path.exists(REPORTS_SUBDIR):

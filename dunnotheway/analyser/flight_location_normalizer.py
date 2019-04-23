@@ -1,8 +1,8 @@
 from common.log import logger
-from tracker.models.flight_location import FlightLocation
-from tracker.models.airport import Airport
+from flight.models.flight_location import FlightLocation
+from flight.models.airport import Airport
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
-from tracker.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
+from flight.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
 
 
 def normalize_flight_locations(flight_locations, 

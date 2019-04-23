@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 from common.db import open_database_session
 from analyser.section import Section
-from tracker.models.airport import Airport
+from flight.models.airport import Airport
 
 from .settings import NUMBER_SECTIONS
 

@@ -4,8 +4,8 @@ from common.log import logger
 from common.utils import distance_two_dimensions_coordinates
 
 from weather.stsc import STSC
-from tracker.models.airport import Airport
-from tracker.models.bounding_box import bounding_box_related_to_airports
+from flight.models.airport import Airport
+from flight.models.bounding_box import bounding_box_related_to_airports
 from analyser.flight_location_normalizer import normalize_flight_locations
 from .section import Section, FlightLocationRecord
 from .obstacle import Obstacle

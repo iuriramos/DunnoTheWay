@@ -7,7 +7,7 @@ from sklearn.cluster import DBSCAN
 from common.log import logger
 from common.db import open_database_session
 from common.utils import distance_three_dimensions_coordinates
-from tracker.models.airport import Airport
+from flight.models.airport import Airport
 
 from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
                        DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_SECTION)

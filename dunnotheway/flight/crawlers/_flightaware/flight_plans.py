@@ -10,9 +10,9 @@ from sqlalchemy import literal
 
 from common.settings import BASE_DIR
 from common.db import open_database_session
-from tracker.models.airline import Airline
-from tracker.models.airport import Airport
-from tracker.models.flight_plan import FlightPlan
+from flight.models.airline import Airline
+from flight.models.airport import Airport
+from flight.models.flight_plan import FlightPlan
 
 sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
@@ -20,7 +20,7 @@ sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
 
 DATA_TMP_FILE_NAME = 'data.tmp'
-DATA_TMP_FILE_PATH = os.path.join(BASE_DIR, 'tracker', 'crawlers', '_flightaware', DATA_TMP_FILE_NAME)
+DATA_TMP_FILE_PATH = os.path.join(BASE_DIR, 'flight', 'crawlers', '_flightaware', DATA_TMP_FILE_NAME)
 
 
 def fetch_flight_plans():

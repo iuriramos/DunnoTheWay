@@ -1,5 +1,5 @@
 from collections import namedtuple
-from tracker.opensky.settings import (MAX_LATITUDE_BRAZILIAN_AIRSPACE,
+from flight.opensky.settings import (MAX_LATITUDE_BRAZILIAN_AIRSPACE,
                                       MAX_LONGITUDE_BRAZILIAN_AIRSPACE,
                                       MIN_LATITUDE_BRAZILIAN_AIRSPACE,
                                       MIN_LONGITUDE_BRAZILIAN_AIRSPACE)
