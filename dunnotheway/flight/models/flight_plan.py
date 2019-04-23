@@ -37,6 +37,11 @@ class FlightPlan(Base):
         return session.query(FlightPlan).all()
 
     @staticmethod
+    def all_callsigns(session):
+        flight_plans = FlightPlan.all_flight_plans(session)
+        return {flight_plan.callsign for flight_plan in flight_plans}
+
+    @staticmethod
     def flight_plan_from_callsign(session, callsign):
         return session.query(FlightPlan).filter(FlightPlan.callsign == callsign).first()
 

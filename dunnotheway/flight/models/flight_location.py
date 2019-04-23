@@ -2,6 +2,7 @@ import math
 from sqlalchemy import Column, Numeric, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
+from common.utils import from_timestamp_to_datetime
 
 
 class FlightLocation(Base):
@@ -31,6 +32,18 @@ class FlightLocation(Base):
             latitude=self.latitude,
             altitude=self.altitude,
             flight=repr(self.flight))
+
+    @staticmethod
+    def construct_flight_location_from_state_and_flight(state, flight):
+        '''Return flight location from state-vector and flight object'''
+        return FlightLocation(
+            timestamp=from_timestamp_to_datetime(state.time_position), # timestamp as datetime object
+            longitude=state.longitude,
+            latitude=state.latitude,
+            altitude=state.baro_altitude, # barometric altitude
+            speed=state.velocity,
+            flight=flight
+        )        
 
     @staticmethod
     def check_equal_flight_locations(this, that):

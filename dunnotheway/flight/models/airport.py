@@ -53,6 +53,13 @@ class Airport(Base):
         return normalized_flight_locations
 
     @staticmethod
+    def callsigns_from_airports(session, departure_airport, destination_airport):
+        '''Return callsigns of flights flying from departure airport to destination airport'''
+        flight_plans = FlightPlan.flight_plans_from_airports(
+            session, departure_airport, destination_airport)
+        return {flight_plan.callsign for flight_plan in flight_plans}
+
+    @staticmethod
     def airport_from_icao_code(session, icao_code):
         '''Return airport from airport code'''
         return session.query(Airport).filter(Airport.icao_code == icao_code).first()

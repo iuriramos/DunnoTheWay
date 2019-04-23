@@ -1,32 +1,23 @@
-import json
-import os
 import time
-from datetime import datetime
 
-from analyser.flight_location_normalizer import normalize_flight_locations
 from analyser.obstacle_detector import ObstacleDetector
 from common.db import open_database_session
 from common.log import logger
-from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
-from flight.models.airline import Airline
-from flight.models.airplane import Airplane
 from flight.models.airport import Airport
 from flight.models.bounding_box import (BoundingBox,
-                                         bounding_box_related_to_airports,
-                                         brazilian_airspace_bounding_box)
+                                        bounding_box_related_to_airports,
+                                        brazilian_airspace_bounding_box)
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
 from flight.models.flight_plan import FlightPlan
 from flight.opensky._plot import create_report
 from flight.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-                                      ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
-                                      MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
-                                      SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
-                                      SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS)
+                                     ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
+                                     MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
+                                     SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
+                                     SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS)
 
-from .api import (get_flight_address_from_callsign, get_states,
-                  get_states_from_addresses, get_states_from_bounding_box)
-from .state_vector import StateVector
+from .api import get_states_from_addresses, get_states_from_bounding_box
 
 # global variables
 session = None
@@ -116,8 +107,10 @@ def _update_flight_addresses(departure_airport, destination_airport, round_trip_
 
 def _get_flight_addresses_from_airports(departure_airport, destination_airport):
     '''Return flight ICAO24 addresses from departure airport to destination airport'''
-    callsigns = _get_callsigns_from_airports(departure_airport, destination_airport)
-    bbox = bounding_box_related_to_airports(departure_airport, destination_airport)
+    callsigns = Airport.callsigns_from_airports(
+        session, departure_airport, destination_airport)
+    bbox = bounding_box_related_to_airports(
+        departure_airport, destination_airport)
     addresses = _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)    
     logger.debug('Flight addresses found from {0!r} to {1!r}: {2}'.format(
         departure_airport, destination_airport, addresses))
@@ -125,22 +118,9 @@ def _get_flight_addresses_from_airports(departure_airport, destination_airport):
 
 def _get_addresses_within_brazilian_airspace():
     bbox = brazilian_airspace_bounding_box()
-    callsigns = _get_all_callsigns()
+    callsigns = FlightPlan.all_callsigns(session)
     addresses = _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)
     return addresses
-
-def _get_all_callsigns():
-    flight_plans = FlightPlan.all_flight_plans(session)
-    return _get_callsigns_from_flight_plans(flight_plans)
-        
-def _get_callsigns_from_airports(departure_airport, destination_airport):
-    '''Return callsigns of flights flying from departure airport to destination airport'''
-    flight_plans = FlightPlan.flight_plans_from_airports(
-        session, departure_airport, destination_airport)
-    return _get_callsigns_from_flight_plans(flight_plans)
-    
-def _get_callsigns_from_flight_plans(flight_plans):
-    return {fp.callsign for fp in flight_plans}
 
 def _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox):
     addresses = []
@@ -167,7 +147,7 @@ def _update_finished_flights(address_to_flight, addresses):
 
     for address in old_addresses:
         flight = address_to_flight[address]
-        _remove_duplicated_flight_locations(flight)
+        flight.remove_duplicated_flight_locations()
         # save objects in database
         if _has_enough_flight_locations(flight):
             _save_flight(flight) 
@@ -187,11 +167,11 @@ def _update_current_flights(
     for state in get_states_from_addresses(addresses):
         address = state.address
         if address not in address_to_flight:
-            new_flight = _get_flight_from_state(state)
+            new_flight = Flight.construct_flight_from_state(session, state)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
         flight_plan = flight.flight_plan
-        _ = _get_flight_location_from_state_and_flight(state, flight) # append it automatically
+        _ = FlightLocation.construct_flight_location_from_state_and_flight(state, flight) # append it automatically
         
         # detection of obstacles are handled here
         if ((tracking_mode or _check_flight_plan_in_tracking_list(flight_plan, tracking_list)) and 
@@ -210,42 +190,3 @@ def _check_flight_plan_in_tracking_list(flight_plan, tracking_list):
             flight_plan.destination_airport == destination_airport):
             return True
     return False
-
-def _get_flight_from_state(state):
-    '''Return flight object from state-vector.'''
-    flight_plan = FlightPlan.flight_plan_from_callsign(session, state.callsign)
-    airplane = StateVector.airplane_from_state(session, state)
-    flight = Flight(
-        airplane=airplane,
-        flight_plan=flight_plan)
-    
-    logger.debug('Create new flight object: {0!r}'.format(flight))
-    return flight
-
-def _get_flight_location_from_state_and_flight(state, flight):
-    '''Return flight location from state-vector and flight object'''
-    flight_location = FlightLocation(
-        timestamp=from_timestamp_to_datetime(state.time_position), # timestamp as datetime object
-        longitude=state.longitude,
-        latitude=state.latitude,
-        altitude=state.baro_altitude, # barometric altitude
-        speed=state.velocity,
-        flight=flight
-    )        
-    # logger.debug('Create new flight location object: {0!r}'.format(flight_location))
-    return flight_location
-
-def _remove_duplicated_flight_locations(flight):
-    '''Remove duplicated flight locations.'''
-    flight_locations = []
-
-    prev = None
-    for curr in flight.flight_locations:
-        if not FlightLocation.check_equal_flight_locations(prev, curr):
-            flight_locations.append(curr)
-        prev = curr
-    
-    logger.debug('Reduce {0} duplicated flight locations to {1} unique ones'.format(
-        len(flight.flight_locations), len(flight_locations)))
-    # update flight locations of flight
-    flight.flight_locations = flight_locations

@@ -2,6 +2,9 @@ from datetime import datetime
 from sqlalchemy import Column, String, Integer, Numeric, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
+from .flight_location import FlightLocation
+from .flight_plan import FlightPlan
+from flight.opensky.models.state_vector import StateVector
 
 
 class Flight(Base):
@@ -24,3 +27,20 @@ class Flight(Base):
         return 'Flight({id}, {airplane})'.format(
             id=self.id,
             airplane=repr(self.airplane))
+
+    @staticmethod
+    def construct_flight_from_state(session, state):
+        '''Return flight object from state-vector.'''
+        flight_plan = FlightPlan.flight_plan_from_callsign(session, state.callsign)
+        airplane = StateVector.airplane_from_state(session, state)
+        return Flight(airplane=airplane, flight_plan=flight_plan)
+        
+    def remove_duplicated_flight_locations(self):
+        '''Remove duplicated flight locations.'''
+        unique_flight_locations = []
+        prev = None
+        for curr in self.flight_locations:
+            if not FlightLocation.check_equal_flight_locations(prev, curr):
+                unique_flight_locations.append(curr)
+            prev = curr
+        self.flight_locations = unique_flight_locations

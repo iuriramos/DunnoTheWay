@@ -61,7 +61,6 @@ class StateVector:
         '''Return state-vector flight callsign'''
         return self._callsign.strip()
 
-
     @staticmethod
     def airplane_from_state(session, state):
         '''Return airplane object from state-vector if the airplane was recorded in db before,

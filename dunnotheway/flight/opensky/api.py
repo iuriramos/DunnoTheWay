@@ -7,7 +7,7 @@ from flight.opensky.settings import (ITERATIONS_LIMIT_TO_RETRY_NEW_CONNECTION,
                                       OPEN_SKY_URL,
                                       SLEEP_TIME_TO_RETRY_NEW_CONNECTION_IN_SECS)
 
-from .state_vector import StateVector
+from .models.state_vector import StateVector
 
 
 def get_flight_address_from_callsign(callsign):
