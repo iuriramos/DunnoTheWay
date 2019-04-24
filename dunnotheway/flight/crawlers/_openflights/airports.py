@@ -2,6 +2,8 @@
 
 import os
 import sys
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
 from io import StringIO
 
 import numpy as np
@@ -10,9 +12,6 @@ import requests
 
 from common.db import open_database_session
 from flight.models.airport import Airport
-
-sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
-
 
 
 

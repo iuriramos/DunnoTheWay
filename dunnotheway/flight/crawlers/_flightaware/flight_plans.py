@@ -2,6 +2,8 @@ import json
 import os
 import re
 import sys
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
 from collections import namedtuple
 
 import requests
@@ -13,10 +15,6 @@ from common.db import open_database_session
 from flight.models.airline import Airline
 from flight.models.airport import Airport
 from flight.models.flight_plan import FlightPlan
-
-sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
-
-
 
 
 DATA_TMP_FILE_NAME = 'data.tmp'
