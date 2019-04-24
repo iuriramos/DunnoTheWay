@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from common.db import open_database_session
-from analyser.section import Section
+from analyser.models.section import Section
 from flight.models.airport import Airport
 
 from .settings import NUMBER_SECTIONS

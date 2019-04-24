@@ -2,15 +2,21 @@ from collections import defaultdict, namedtuple
 
 import numpy as np
 import hdbscan
-from sklearn.cluster import DBSCAN
 
 from common.log import logger
 from common.db import open_database_session
 from common.utils import distance_three_dimensions_coordinates
 from flight.models.airport import Airport
 
-from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
-                       DBSCAN_PERCENTAGE_NOISE, NUMBER_ENTRIES_PER_SECTION)
+from .settings import NUMBER_ENTRIES_PER_SECTION
+
+
+# import hdbscan
+# self.classifier = hdbscan.HDBSCAN(
+#     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
+#     metric=distance_three_dimensions_coordinates)
+from sklearn.cluster import DBSCAN
+from .settings import DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
 
 
 FlightLocationRecord = namedtuple(
@@ -34,17 +40,14 @@ class Section:
     `label` attributes the cluster group for a specific flight location.
     '''
 
-    def __init__(self, section_point, longitude_based, records):
+    def __init__(self, section_point, longitude_based, records, classifier):
         self.section_point = section_point
         self.longitude_based = longitude_based
         self.records = records # FlightLocationRecords
-        # self.classifier = hdbscan.HDBSCAN(
-        #     min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
-        #     metric=distance_three_dimensions_coordinates)
         self.classifier = DBSCAN(
-                eps=DBSCAN_MAXIMUM_DISTANCE, 
-                min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
-                metric=distance_three_dimensions_coordinates)
+            eps=DBSCAN_MAXIMUM_DISTANCE, 
+            min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
+            metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_records = defaultdict(list)
 
@@ -99,6 +102,7 @@ class Section:
     @run_classifier_before
     def predict_label_from_record(self, record):
         try:
+            # TODO: remove hdscan library
             labels, _ = hdbscan.approximate_predict(
                 self.classifier, [record])
             label = labels[0]
