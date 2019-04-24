@@ -60,8 +60,9 @@ def remove_invalid_flight_plans_data(data):
         elif callsign in unique: # already visited
             prev, count = unique[callsign]
             if similar_entries(curr, prev):
-                unique[callsign] = DataWithCount(data, count+1)
+                unique[callsign] = DataWithCount(curr, count+1)
             else:
+                print(prev, curr)
                 del unique[callsign]
 
     return (curr for curr, count in unique.values() if count >= MIN_COUNT)

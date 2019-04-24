@@ -1,18 +1,15 @@
 import time
 
-from analyser.obstacle_detector import ObstacleDetector
 from common.db import open_database_session
 from common.log import logger
+
 from flight.models.airport import Airport
-from flight.models.bounding_box import (BoundingBox,
-                                        bounding_box_related_to_airports,
-                                        brazilian_airspace_bounding_box)
+from flight.models.bounding_box import (bounding_box_related_to_airports,
+                                        BRAZILIAN_AIRSPACE_BBOX)
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
 from flight.models.flight_plan import FlightPlan
-from flight.opensky._plot import create_report
-from flight.opensky.settings import (FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES,
-                                     ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
+from flight.opensky.settings import (ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS,
                                      MIN_NUMBER_TO_SAVE_FLIGHT_LOCATIONS,
                                      SLEEP_TIME_TO_GET_FLIGHT_IN_SECS,
                                      SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS)
@@ -23,19 +20,25 @@ from .api import get_states_from_addresses, get_states_from_bounding_box
 session = None
 
 
-def search_flight_deviations():
-    # TODO: construct method
-    pass
+def track_en_route_flights():
+    '''Keep track of ALL en-route flights'''
+    global session 
+
+    address_to_flight = {}
+    count_iterations = 0
+    
+    with open_database_session() as session:
+        while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
+            time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
+            if _should_update_flight_addresses(count_iterations):
+                addresses = _get_addresses_within_brazilian_airspace()
+            _update_flights(address_to_flight, addresses)
+            count_iterations += 1
+            
 
 def track_en_route_flights_by_airports(
-    departure_airport_code, destination_airport_code, 
-    round_trip_mode=False, tracking_mode=True):
-    '''
-    Keep track of current flights information from departure airport to destination airport
-    
-    round trip mode: interchanging departure and destination airports as well
-    building mode: record flight and their fight locations to build Air Space Graph 
-    '''
+    departure_airport_code, destination_airport_code, round_trip_mode=False):
+    '''Keep track of current flights information from departure airport to destination airport.'''
     global session 
 
     logger.info('Track flight addresses from {0} to {1} in {2} mode'.format(
@@ -43,7 +46,6 @@ def track_en_route_flights_by_airports(
     
     address_to_flight = {}
     count_iterations = 0
-    detector = ObstacleDetector()
     
     with open_database_session() as session:
         departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
@@ -52,44 +54,11 @@ def track_en_route_flights_by_airports(
         while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
             time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
             if _should_update_flight_addresses(count_iterations):
-                addresses = _update_flight_addresses(departure_airport, destination_airport, round_trip_mode)
-            _update_flights(detector, address_to_flight, addresses, tracking_mode)
+                addresses = _update_flight_addresses(
+                    departure_airport, destination_airport, round_trip_mode)
+            _update_flights(address_to_flight, addresses)
             count_iterations += 1
 
-
-def track_en_route_flights(tracking_mode=True, tracking_airports_list=None):
-    '''
-    Keep track of ALL en-route flights
-    
-    building mode: record flight and their fight locations to build Air Space Graph 
-    '''
-    global session 
-
-    address_to_flight = {}
-    count_iterations = 0
-    detector = ObstacleDetector()
-
-    
-    with open_database_session() as session:
-        tracking_list = _build_tracking_list(tracking_airports_list)
-        
-        while count_iterations < ITERATIONS_LIMIT_TO_SEARCH_FLIGHTS:
-            time.sleep(SLEEP_TIME_TO_GET_FLIGHT_IN_SECS)
-            if _should_update_flight_addresses(count_iterations):
-                addresses = _get_addresses_within_brazilian_airspace()
-            _update_flights(
-                detector, address_to_flight, addresses, tracking_mode, tracking_list)
-            count_iterations += 1
-
-def _build_tracking_list(tracking_airports_list):
-    tracking_airports_list = tracking_airports_list or []
-
-    tracking_list = []
-    for departure_airport_code, destination_airport_code in tracking_airports_list:
-        departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
-        destination_airport = Airport.airport_from_icao_code(session, destination_airport_code)
-        tracking_list.append((departure_airport, destination_airport))
-    return tracking_list
 
 def _should_update_flight_addresses(count_iterations):
     times = SLEEP_TIME_TO_SEARCH_NEW_FLIGHTS_IN_SECS//SLEEP_TIME_TO_GET_FLIGHT_IN_SECS
@@ -117,7 +86,7 @@ def _get_flight_addresses_from_airports(departure_airport, destination_airport):
     return addresses
 
 def _get_addresses_within_brazilian_airspace():
-    bbox = brazilian_airspace_bounding_box()
+    bbox = BRAZILIAN_AIRSPACE_BBOX
     callsigns = FlightPlan.all_callsigns(session)
     addresses = _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)
     return addresses
@@ -130,12 +99,10 @@ def _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox):
             addresses.append(state.address)
     return addresses 
 
-def _update_flights(
-    detector, address_to_flight, addresses, tracking_mode, tracking_list=None):
+def _update_flights(address_to_flight, addresses):
     '''Update address to flight mapping, which maps identifiers to flight objects and keeps track of current state-vector information'''
     _update_finished_flights(address_to_flight, addresses)
-    _update_current_flights(
-        detector, address_to_flight, addresses, tracking_mode, tracking_list)
+    _update_current_flights(address_to_flight, addresses)
 
 def _update_finished_flights(address_to_flight, addresses):
     '''Update finished flights in address to flight mappig'''
@@ -153,14 +120,7 @@ def _update_finished_flights(address_to_flight, addresses):
             _save_flight(flight) 
         del address_to_flight[address]
 
-def _save_flight(flight):
-    '''Save flight information in database (flight locations included)'''
-    logger.info('Save flight {0!r}'.format(flight))
-    session.add(flight)
-    session.commit()
-
-def _update_current_flights(
-    detector, address_to_flight, addresses, tracking_mode, tracking_list):
+def _update_current_flights(address_to_flight, addresses):
     '''Update address to flight mapping with current values of addresses'''
     logger.info('Update current flights: {0}'.format(addresses))
 
@@ -170,23 +130,12 @@ def _update_current_flights(
             new_flight = Flight.construct_flight_from_state(session, state)
             address_to_flight[address] = new_flight
         flight = address_to_flight[address]
-        flight_plan = flight.flight_plan
-        _ = FlightLocation.construct_flight_location_from_state_and_flight(state, flight) # append it automatically
-        
-        # detection of obstacles are handled here
-        if ((tracking_mode or _check_flight_plan_in_tracking_list(flight_plan, tracking_list)) and 
-            len(flight.flight_locations) >= 2):
-            # prev, curr = prev_and_curr_flight_locations_from_flight(flight) 
-            prev, curr = flight.flight_locations[-2:]
-            if not FlightLocation.check_equal_flight_locations(prev, curr):
-                _ = (detector.
-                    check_obstacles_related_to_flight_location(prev, curr))
+        (FlightLocation
+            .construct_flight_location_from_state_and_flight(state, flight))
 
-def _check_flight_plan_in_tracking_list(flight_plan, tracking_list):
-    tracking_list = tracking_list or []
-    
-    for departure_airport, destination_airport in tracking_list:
-        if (flight_plan.departure_airport == departure_airport and
-            flight_plan.destination_airport == destination_airport):
-            return True
-    return False
+def _save_flight(flight):
+    '''Save flight information in database (flight locations included)'''
+    logger.info('Save flight {0!r}'.format(flight))
+    session.add(flight)
+    session.commit()
+        

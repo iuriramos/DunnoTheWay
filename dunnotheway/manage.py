@@ -13,7 +13,7 @@ if __name__ == '__main__':
         
         # online methods
         'search-intersections-convection-cells': weather_tracker.search_intersections_convection_cells,
-        'search-flight-deviations': flight_tracker.search_flight_deviations,
+        # 'search-flight-deviations': flight_tracker.search_flight_deviations,
     })
 
     # flight_tracker.track_en_route_flights_by_airports('SBBR', 'SBGR', 

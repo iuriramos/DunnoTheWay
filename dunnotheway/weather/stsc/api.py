@@ -1,7 +1,10 @@
+import sys
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
 import time
 import requests
-from flight.models.airport import Airport
 from weather.models.convection_cell import ConvectionCell
+# from flight.models.airport import Airport
 
 
 class STSC:
@@ -94,6 +97,7 @@ class STSC:
 if __name__ == '__main__':
     client = STSC()
     start = time.time()
-    _ = client.cells
+    cells = client.cells
     end = time.time()
+    print (cells)
     print('retrieval time (in seconds) -', end-start)
