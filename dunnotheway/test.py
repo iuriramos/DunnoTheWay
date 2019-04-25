@@ -13,7 +13,7 @@ from flight.models.flight_location import FlightLocation
 from weather.models.convection_cell import ConvectionCell
 from analyser.models.section import Section
 from analyser.models.obstacle import Obstacle
-from analyser.obstacle_detector import ObstacleDetector
+from analyser._obstacle_detector import ObstacleDetector
 
 
 matplotlib.use('Agg')
