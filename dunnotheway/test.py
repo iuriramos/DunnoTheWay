@@ -20,6 +20,9 @@ matplotlib.use('Agg')
 
 session = None
 
+# TODO: change to attributes / maybe a class is more convenient?
+# Intersection = namedtuple(
+#     'Intersection', ['convection_cell', 'departure_airport', 'destination_airports', 'impact?'])
 Intersection = namedtuple(
     'Intersection', ['convection_cell', 'partition', 'flight_ids', 'all_flight_ids'])
 
@@ -183,7 +186,7 @@ def check_for_intersections(departure_airport, destination_airport, convection_c
     follow_ascending_order = Airport.follow_ascending_order(
         departure_airport, destination_airport)
 
-    cells = [convection_cell]
+    cells = [convection_cell] # TODO: maybe use more than one cell
     iter_sections, iter_cells = iter(sections), iter(cells)
     section, cell = next(iter_sections), next(iter_cells)
 
