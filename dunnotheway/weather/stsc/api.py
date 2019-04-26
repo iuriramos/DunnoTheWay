@@ -3,6 +3,7 @@ sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
 import time
 import requests
+from common.utils import from_timestamp_to_datetime
 from weather.models.convection_cell import ConvectionCell
 # from flight.models.airport import Airport
 
@@ -22,23 +23,12 @@ class STSC:
     #     bbox = Airport.bounding_box_related_to_airports(departure_airport, destination_airport)
     #     return self.cells_within_bounding_box(bbox)
 
-    #     # bbox = Airport.bounding_box_related_to_airports(departure_airport, destination_airport)
-    #     # longitude_based = Airport.should_be_longitude_based(departure_airport, destination_airport)
-        
-    #     # if longitude_based:
-    #     #     sorting_strategy = lambda x: (x.longitude, x.latitude)
-    #     # else:
-    #     #     sorting_strategy = lambda x: (x.latitude, x.longitude)
-        
-    #     # cells = self.cells_within_bounding_box(bbox, sorting_strategy)
-    #     # return cells
-
     @property
     def has_changed(self):
         self.cells
-        result = self._has_changed
-        self._has_changed = False # careful with this side effect!
-        return result
+        _has_changed = self._has_changed
+        self._has_changed = False # careful with this!
+        return _has_changed
     
     def cells_within_bounding_box(self, bbox, sorting_key=None, sorting_reverse=False):
         if bbox not in self._bbox_to_cells:
@@ -67,21 +57,27 @@ class STSC:
                 # set new timestamp and empty cache
                 self._bbox_to_cells = {}
                 self._updated_at = now
-                self._has_changed = True        
+                self._has_changed = True
         return self._cells
 
     def _update_cells(self):
+        cells = set()
+        
         try:
             events = self._get_request_response()
             for cell_id, event in events.items():
                 try:
                     cell = self._create_cell(cell_id, event)
-                    self._cells.add(cell)
+                    cells.add(cell)
                 except KeyError:
                     return False
         except requests.exceptions.RequestException:
             return False
-        return True
+        
+        # retrieved the cells successfully
+        _has_changed = (self._cells != cells)
+        self._cells = cells
+        return _has_changed
 
     def _get_request_response(self):
         r = requests.get(self._url)
@@ -92,7 +88,8 @@ class STSC:
             return ConvectionCell(
                 float(cell['Latitude']),
                 float(cell['Longitude']),
-                float(cell['Raio']))
+                float(cell['Raio']),
+                from_timestamp_to_datetime(time.time()))
 
 if __name__ == '__main__':
     client = STSC()

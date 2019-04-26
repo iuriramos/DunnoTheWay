@@ -1,0 +1,3 @@
+'''stsc settings file'''
+
+SLEEP_TIME_TO_GET_CONVECTION_CELLS_IN_SECS = 305
