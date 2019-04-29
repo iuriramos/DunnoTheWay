@@ -32,5 +32,9 @@ class ConvectionCell(Base):
         return (self.latitude == other.latitude and
                 self.longitude == other.longitude and
                 self.radius == other.radius)
+
+    @staticmethod
+    def all_convection_cells(session):
+        return session.query(ConvectionCell).all()
     
 
