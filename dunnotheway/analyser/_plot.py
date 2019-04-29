@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from common.db import open_database_session
-from analyser.models._section import Section
+from analyser.models.section import Section
 from flight.models.airport import Airport
 
 from .settings import NUMBER_SECTIONS
@@ -30,7 +30,7 @@ def build_airways_related_to_airports(
             session, departure_airport_code)
         destination_airport = Airport.airport_from_icao_code(
             session, destination_airport_code)
-        sections = Section.sections_related_to_airports(
+        sections = Section.sections_from_airports(
             departure_airport, destination_airport)
         
         for section in filter_sections(sections):

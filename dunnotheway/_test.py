@@ -11,7 +11,7 @@ from flight.models.airport import Airport
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
 from weather.models.convection_cell import ConvectionCell
-from analyser.models._section import Section
+from analyser.models.section import Section
 from analyser.models._obstacle import Obstacle
 from analyser._obstacle_detector import ObstacleDetector
 
@@ -174,7 +174,7 @@ def plot_flight_location_altitudes(flight_locations, axis):
 def check_for_intersections(departure_airport, destination_airport, convection_cell):
     intersections = []
     
-    sections = Section.sections_related_to_airports(
+    sections = Section.sections_from_airports(
                     departure_airport, destination_airport)
 
     clusters_freq = [len(set(s.labels)) for s in sections]

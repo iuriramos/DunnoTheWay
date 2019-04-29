@@ -6,7 +6,7 @@ import pandas as pd
 
 from analyser._obstacle_detector import ObstacleDetector
 from analyser.models._obstacle import Obstacle
-from analyser.models._section import Section
+from analyser.algorithms.dbscan import DBSCAN
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
 from flight.models.airport import Airport
@@ -54,7 +54,7 @@ def _check_multiple_intersections(
     departure_airport, destination_airport, convection_cells):
     intersections = []
     
-    sections = Section.sections_related_to_airports(
+    sections = DBSCAN.sections_from_airports(
                     departure_airport, destination_airport)
     
     longitude_based = Airport.should_be_longitude_based(
@@ -111,26 +111,26 @@ def distance_between_section_and_cell(section, cell):
 
 def _check_intersection_between_section_cell(section, cell):
         
-        def has_intersection_between_record_and_cell(record, cell):
+        def has_intersection(flight_location, cell):
             distance = distance_two_dimensions_coordinates(
-                (record.latitude, record.longitude), (cell.latitude, cell.longitude))
+                (float(flight_location.latitude), float(flight_location.longitude)), 
+                (cell.latitude, cell.longitude))
             return distance < cell.radius
 
-        #### TODO: forcing update on section labels
-        _ = section.labels 
-        
-        labels = []
-        all_flight_ids = set()
-        for label, records in section:
-            for record in records:
-                all_flight_ids.add(record.flight_id)
-                if has_intersection_between_record_and_cell(record, cell):
-                    labels.append(label)
-                    # break
+        # run classifier first
+        section.run_classifier()
 
-        flight_ids = {record.flight_id 
+        labels = set()
+        all_flight_ids = set()
+        for label, flight_locations in section:
+            for flight_location in flight_locations:
+                all_flight_ids.add(flight_location.flight.id)
+                if has_intersection(flight_location, cell):
+                    labels.add(label)
+
+        flight_ids = {flight_location.flight.id 
                         for label in labels 
-                        for record in section.records_from_label(label)}
+                        for flight_location in section.get_flight_locations(label)}
         
         impact = None
         if len(all_flight_ids) > 0 and len(flight_ids) > 0:

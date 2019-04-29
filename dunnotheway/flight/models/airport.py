@@ -37,7 +37,7 @@ class Airport(Base):
 
     #### TODO: Move to Flight Location Class
     @staticmethod
-    def normalized_flight_locations_related_to_airports(
+    def get_normalized_flight_locations(
         session, departure_airport, destination_airport):
         '''Return registered flight locations from departure airport to destination airport'''
         normalized_flight_locations = []
