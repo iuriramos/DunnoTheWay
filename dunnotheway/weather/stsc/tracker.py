@@ -34,7 +34,3 @@ def save_convection_cells(new_cells):
         session.add(cell)
     session.commit()
 
-
-def search_intersections_convection_cells():
-    # TODO: move to analyser folder, construct method
-    pass

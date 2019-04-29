@@ -36,5 +36,3 @@ class ConvectionCell(Base):
     @staticmethod
     def all_convection_cells(session):
         return session.query(ConvectionCell).all()
-    
-
