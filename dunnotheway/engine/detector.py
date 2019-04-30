@@ -4,15 +4,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from analyser.models._obstacle import Obstacle
-from analyser.algorithms.dbscan import DBSCAN
+from engine.models._obstacle import Obstacle
+from engine.algorithms.dbscan import DBSCAN
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
 from flight.models.airport import Airport
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
 from weather.models.convection_cell import ConvectionCell
-from analyser.models.intersection import Intersection, IntersectionManager
+from engine.models.intersection import Intersection, IntersectionManager
 
 
 matplotlib.use('Agg')

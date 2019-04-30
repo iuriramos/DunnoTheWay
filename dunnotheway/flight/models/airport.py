@@ -35,11 +35,10 @@ class Airport(Base):
     def __eq__(self, other):
         return self.icao_code == other.icao_code
 
-    #### TODO: Move to Flight Location Class
     @staticmethod
     def get_normalized_flight_locations(
         session, departure_airport, destination_airport):
-        '''Return registered flight locations from departure airport to destination airport'''
+        '''Return ordered normalized flight locations from departure airport to destination airport'''
         normalized_flight_locations = []
         
         for flight_plan in (FlightPlan.

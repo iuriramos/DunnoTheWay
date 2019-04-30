@@ -2,9 +2,9 @@ from collections import defaultdict, namedtuple
 from sklearn.cluster import DBSCAN as _DBSCAN
 
 from common.utils import distance_three_dimensions_coordinates
-from analyser.models.section import Section
+from engine.models.section import Section
 
-from analyser.settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
+from engine.settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
                        NUMBER_ENTRIES_PER_SECTION)
 
 

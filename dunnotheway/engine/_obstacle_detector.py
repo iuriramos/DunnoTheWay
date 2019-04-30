@@ -6,8 +6,8 @@ from common.utils import distance_two_dimensions_coordinates
 from weather.stsc.api import STSC
 from flight.models.airport import Airport
 from flight.models.bounding_box import bounding_box_related_to_airports
-from analyser.flight_location_normalizer import normalize_flight_locations
-from analyser.models.section import Section, FlightLocationRecord
+from engine.flight_location_normalizer import normalize_flight_locations
+from engine.models.section import Section, FlightLocationRecord
 from analyses.models._obstacle import Obstacle
 
 

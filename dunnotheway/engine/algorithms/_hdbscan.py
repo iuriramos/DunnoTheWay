@@ -8,7 +8,7 @@ from common.db import open_database_session
 from common.utils import distance_three_dimensions_coordinates
 from flight.models.airport import Airport
 
-from analyser.settings import NUMBER_ENTRIES_PER_SECTION
+from engine.settings import NUMBER_ENTRIES_PER_SECTION
 
 
 

@@ -2,7 +2,7 @@ import fire
 import flight.models.fixtures
 import flight.opensky.tracker as flight_tracker
 import weather.stsc.tracker as weather_tracker
-from analyser import detector
+from engine import detector
 
 
 if __name__ == '__main__':
