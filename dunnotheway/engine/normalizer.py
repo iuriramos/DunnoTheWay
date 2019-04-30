@@ -1,8 +1,44 @@
 from common.log import logger
 from flight.models.flight_location import FlightLocation
 from flight.models.airport import Airport
+from flight.models.flight_plan import FlightPlan
 from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
 from flight.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
+
+
+def get_normalized_flight_locations(
+    session, departure_airport, destination_airport):
+    '''Return ordered normalized flight locations from departure airport to destination airport'''
+    normalized_flight_locations = []
+    
+    for flight_plan in (FlightPlan.
+        flight_plans_from_airports(session, departure_airport, destination_airport)):
+        normalized_flight_locations += (
+            normalized_flight_locations_from_flight_plan(flight_plan))
+    
+    # sort flight locations
+    longitude_based = Airport.should_be_longitude_based(
+        departure_airport, destination_airport)
+    follow_ascending_order = Airport.follow_ascending_order(
+        departure_airport, destination_airport)
+    
+    normalized_flight_locations.sort(
+        key=(lambda fl: fl.longitude if longitude_based else fl.latitude),
+        reverse=(not follow_ascending_order))
+    return normalized_flight_locations
+
+
+def normalized_flight_locations_from_flight_plan(flight_plan):
+    '''Return flight locations of flight plan'''
+    
+    def _normalized_flights_related_to_flight_plan(flight_plan):
+        flights = flight_plan.flights
+        return [flight for flight in flights if flight.partition_interval is not None] 
+
+    flight_locations = []
+    for flight in _normalized_flights_related_to_flight_plan(flight_plan): 
+        flight_locations += flight.flight_locations 
+    return flight_locations
 
 
 def normalize_flight_locations(flight_locations, 

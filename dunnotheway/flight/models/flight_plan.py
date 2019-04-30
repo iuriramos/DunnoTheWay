@@ -50,19 +50,3 @@ class FlightPlan(Base):
         '''Split callsign in meaninful chunks (airplane designator and flight number)'''
         airplane_designator, flight_number = callsign[:3], callsign[3:]
         return airplane_designator, flight_number
-
-    ##### TODO: Change method location: flight location or normalizer...
-    @staticmethod
-    def normalized_flight_locations_related_to_flight_plan(flight_plan):
-        '''Return flight locations of flight plan'''
-        
-        def _normalized_flights_related_to_flight_plan(flight_plan):
-            flights = flight_plan.flights
-            #### TODO: Change database schema
-            return [flight for flight in flights if flight.partition_interval is not None] 
-
-        flight_locations = []
-        for flight in _normalized_flights_related_to_flight_plan(flight_plan): 
-            flight_locations += flight.flight_locations 
-        return flight_locations
-

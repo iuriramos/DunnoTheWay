@@ -36,28 +36,6 @@ class Airport(Base):
         return self.icao_code == other.icao_code
 
     @staticmethod
-    def get_normalized_flight_locations(
-        session, departure_airport, destination_airport):
-        '''Return ordered normalized flight locations from departure airport to destination airport'''
-        normalized_flight_locations = []
-        
-        for flight_plan in (FlightPlan.
-            flight_plans_from_airports(session, departure_airport, destination_airport)):
-            normalized_flight_locations += (FlightPlan.
-                normalized_flight_locations_related_to_flight_plan(flight_plan))
-        
-        # sort flight locations
-        longitude_based = Airport.should_be_longitude_based(
-            departure_airport, destination_airport)
-        follow_ascending_order = Airport.follow_ascending_order(
-            departure_airport, destination_airport)
-        
-        normalized_flight_locations.sort(
-            key=lambda fl: fl.longitude if longitude_based else fl.latitude,
-            reverse=(not follow_ascending_order))
-        return normalized_flight_locations
-
-    @staticmethod
     def callsigns_from_airports(session, departure_airport, destination_airport):
         '''Return callsigns of flights flying from departure airport to destination airport'''
         flight_plans = FlightPlan.flight_plans_from_airports(
