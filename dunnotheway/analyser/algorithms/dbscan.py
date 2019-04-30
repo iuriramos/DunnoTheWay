@@ -4,7 +4,7 @@ from sklearn.cluster import DBSCAN as _DBSCAN
 from common.utils import distance_three_dimensions_coordinates
 from analyser.models.section import Section
 
-from .settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
+from analyser.settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
                        NUMBER_ENTRIES_PER_SECTION)
 
 
@@ -53,7 +53,7 @@ class DBSCAN:
                 (
                     float(flight_location.latitude), 
                     float(flight_location.longitude), 
-                    float(flight_location.altitude)
+                    float(flight_location.altitude),
                 ) for flight_location in self.section.flight_locations
             ]
             self.classifier.fit(train_set)

@@ -4,7 +4,7 @@ from common.log import logger
 from common.db import open_database_session
 from flight.models.airport import Airport
 
-from .settings import NUMBER_ENTRIES_PER_SECTION
+from analyser.settings import NUMBER_ENTRIES_PER_SECTION
 
 
 class Section:

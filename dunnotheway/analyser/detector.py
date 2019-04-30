@@ -4,7 +4,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from analyser._obstacle_detector import ObstacleDetector
 from analyser.models._obstacle import Obstacle
 from analyser.algorithms.dbscan import DBSCAN
 from common.db import open_database_session

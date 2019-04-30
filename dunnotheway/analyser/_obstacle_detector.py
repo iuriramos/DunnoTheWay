@@ -7,7 +7,7 @@ from weather.stsc.api import STSC
 from flight.models.airport import Airport
 from flight.models.bounding_box import bounding_box_related_to_airports
 from analyser.flight_location_normalizer import normalize_flight_locations
-from analyser.models._section import Section, FlightLocationRecord
+from analyser.models.section import Section, FlightLocationRecord
 from analyses.models._obstacle import Obstacle
 
 
@@ -217,7 +217,7 @@ class ObstacleDetector:
         
         if airports not in self._airports_to_sections:
             self._airports_to_sections[airports] = (
-                Section.sections_related_to_airports(
+                Section.sections_from_airports(
                     departure_airport, destination_airport))
 
         return self._airports_to_sections[airports]
