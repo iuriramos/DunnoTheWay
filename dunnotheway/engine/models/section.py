@@ -26,7 +26,7 @@ class Section:
         return 'Section({sp})'.format(sp=self.section_point)
       
     @staticmethod
-    def sections_related_to_airports(departure_airport, destination_airport):
+    def sections_from_airports(departure_airport, destination_airport):
         '''Return sections from flight locations'''
         # retrieve flight locations
         with open_database_session() as session:
