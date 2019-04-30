@@ -6,7 +6,7 @@ from common.utils import distance_two_dimensions_coordinates
 from weather.stsc.api import STSC
 from flight.models.airport import Airport
 from flight.models.bounding_box import bounding_box_related_to_airports
-from engine.normalizer import normalize_flight_locations
+from engine.normalizer import normalized_flight_locations
 from engine.models.section import Section, FlightLocationRecord
 from analyses.models._obstacle import Obstacle
 
@@ -37,7 +37,7 @@ class ObstacleDetector:
         flight_plan = flight.flight_plan
         airports = ObstacleDetector.DepartureAndDestinationAirports(
             flight_plan.departure_airport, flight_plan.destination_airport)
-        normalized_flight_locations = normalize_flight_locations( 
+        normalized_flight_locations = normalized_flight_locations( 
             [prev_flight_location, curr_flight_location])
         
         if not normalized_flight_locations:

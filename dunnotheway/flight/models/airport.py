@@ -55,7 +55,7 @@ class Airport(Base):
         return longitude_distance >= latitude_distance
 
     @staticmethod
-    def _section_points_related_to_airports(
+    def _section_points_from_airports(
         departure_airport, destination_airport, partition_interval):
         '''Return section points related to flight trajectory'''
 
@@ -70,6 +70,8 @@ class Airport(Base):
         
         longitude_based = Airport.should_be_longitude_based(
             departure_airport, destination_airport)
+        follow_ascending_order = Airport.follow_ascending_order(
+            departure_airport, destination_airport)
 
         if longitude_based:
             start_interval, end_interval = sorted([
@@ -78,10 +80,9 @@ class Airport(Base):
             start_interval, end_interval = sorted([
                 float(departure_airport.latitude), float(destination_airport.latitude)])
 
-        follow_ascending_order = Airport.follow_ascending_order(
-            departure_airport, destination_airport)
         partitions = split_interval_in_section_partitions(
             start_interval, end_interval, partition_interval)
+        
         return partitions if follow_ascending_order else partitions[::-1]
 
     @staticmethod

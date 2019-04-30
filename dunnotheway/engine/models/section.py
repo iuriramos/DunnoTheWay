@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 
+from engine import normalizer
 from common.log import logger
 from common.db import open_database_session
 from flight.models.airport import Airport
@@ -29,7 +30,7 @@ class Section:
         '''Return sections from flight locations'''
         # retrieve flight locations
         with open_database_session() as session:
-            flight_locations = Airport.get_normalized_flight_locations(
+            flight_locations = normalizer.normalized_flight_locations_from_airports(
                 session, departure_airport, destination_airport)
         
         # section should be longitude based
