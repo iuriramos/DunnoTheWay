@@ -8,14 +8,14 @@ from flight.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
 
 def normalized_flight_locations_from_airports(
     session, departure_airport, destination_airport):
-    '''Return ordered normalized flight locations from departure airport to destination airport'''
-    normalized_flight_locations = []
-    
-    for flight_plan in (FlightPlan.
-        flight_plans_from_airports(session, departure_airport, destination_airport)):
-        normalized_flight_locations += (
-            normalized_flight_locations_from_flight_plan(flight_plan))
-    
+    '''Return SORTED normalized flight locations from departure airport to destination airport'''
+    normalized_flight_locations = [
+        normalized_flight_location
+        for flight_plan in (FlightPlan.
+            flight_plans_from_airports(session, departure_airport, destination_airport))
+        for normalized_flight_location in (
+            normalized_flight_locations_from_flight_plan(flight_plan))]
+
     # sort flight locations
     longitude_based = Airport.should_be_longitude_based(
         departure_airport, destination_airport)
@@ -25,6 +25,7 @@ def normalized_flight_locations_from_airports(
     normalized_flight_locations.sort(
         key=(lambda fl: fl.longitude if longitude_based else fl.latitude),
         reverse=(not follow_ascending_order))
+
     return normalized_flight_locations
 
 
