@@ -37,13 +37,13 @@ class ObstacleDetector:
         flight_plan = flight.flight_plan
         airports = ObstacleDetector.DepartureAndDestinationAirports(
             flight_plan.departure_airport, flight_plan.destination_airport)
-        normalized_flight_locations = normalized_flight_locations( 
+        normalized_flight_locations_ = normalized_flight_locations( 
             [prev_flight_location, curr_flight_location])
         
-        if not normalized_flight_locations:
+        if not normalized_flight_locations_:
             return []
 
-        normalized_flight_location = normalized_flight_locations[0]
+        normalized_flight_location = normalized_flight_locations_[0]
         curr_flight_ids = self.flight_ids_in_the_same_airway_of_normalized_flight_location(
             normalized_flight_location, airports)
 
