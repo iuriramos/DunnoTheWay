@@ -99,11 +99,10 @@ def _check_multiple_intersections(
 
 def distance_between_section_and_cell(section, cell):
     min_distance = float('infinity')
-    for _label, flight_locations in section:
-        for flight_location in flight_locations:
-            min_distance = min(
-                min_distance, 
-                distance_between_flight_location_and_cell(flight_location, cell))
+    for flight_location in section:
+        min_distance = min(
+            min_distance, 
+            distance_between_flight_location_and_cell(flight_location, cell))
     return min_distance
 
 
@@ -124,11 +123,10 @@ def measure_impact_convection_cell_on_section(section, cell):
 
         all_flight_locations = set()
         intersected_flight_locations = set()
-        for _label, flight_locations in section:
-            for flight_location in flight_locations:
-                all_flight_locations.add(flight_location.id)
-                if has_intersection(flight_location, cell):
-                    intersected_flight_locations.add(flight_location.id)
+        for flight_location in section:
+            all_flight_locations.add(flight_location.id)
+            if has_intersection(flight_location, cell):
+                intersected_flight_locations.add(flight_location.id)
         
         impact = None
         if len(all_flight_locations) > 0 and len(intersected_flight_locations) > 0:

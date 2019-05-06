@@ -30,7 +30,8 @@ class DBSCAN:
         return 'DBSCAN(Section({sp}))'.format(sp=self.section.section_point)
     
     def __iter__(self):
-        yield from self._label_to_flight_locations.items()
+        for flight_locations in self._label_to_flight_locations.values():
+            yield from flight_locations
 
     @property
     def section_point(self):
