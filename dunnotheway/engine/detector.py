@@ -79,12 +79,12 @@ def _check_multiple_intersections(
             distance = distance_between_section_and_cell(section, cell)
             
             if distance < cell.radius: 
-                impact = _check_intersection_between_section_cell(section, cell)
+                impact = measure_impact_convection_cell_on_section(section, cell)
                 if impact:
                     intersection = Intersection(
                         cell, departure_airport, destination_airport, impact)
                     intersections.append(intersection)           
-                section = next(iter_sections)
+                cell = next(iter_cells)
             else: 
                 if should_move_section_iterator(section, cell): 
                     # section is placed before cell, move cell
@@ -98,41 +98,39 @@ def _check_multiple_intersections(
 
 
 def distance_between_section_and_cell(section, cell):
-    if section.longitude_based:
-        section_reference_point = (float(cell.latitude), float(section.section_point))
-    else: 
-        section_reference_point = (float(section.section_point), float(cell.longitude))
-    
-    cell_reference_point = (cell.latitude, cell.longitude) # already casted to float
-    return distance_two_dimensions_coordinates(
-        section_reference_point, cell_reference_point)
+    min_distance = float('infinity')
+    for _label, flight_locations in section:
+        for flight_location in flight_locations:
+            min_distance = min(
+                min_distance, 
+                distance_between_flight_location_and_cell(flight_location, cell))
+    return min_distance
 
 
-def _check_intersection_between_section_cell(section, cell):
+def distance_between_flight_location_and_cell(flight_location, cell):
+    flight_location_2d = (float(flight_location.latitude), float(flight_location.longitude))
+    cell_2d = (cell.latitude, cell.longitude)
+    return distance_two_dimensions_coordinates(flight_location_2d, cell_2d)
+
+
+def measure_impact_convection_cell_on_section(section, cell):
         
         def has_intersection(flight_location, cell):
-            distance = distance_two_dimensions_coordinates(
-                (float(flight_location.latitude), float(flight_location.longitude)), 
-                (cell.latitude, cell.longitude))
+            distance = distance_between_flight_location_and_cell(flight_location, cell)
             return distance < cell.radius
 
         # run classifier first
         section.run_classifier()
 
-        # TODO: why not flight_location instead of flight_id?
-        labels = set()
-        all_flight_ids = set()
-        for label, flight_locations in section:
+        all_flight_locations = set()
+        intersected_flight_locations = set()
+        for _label, flight_locations in section:
             for flight_location in flight_locations:
-                all_flight_ids.add(flight_location.flight.id)
+                all_flight_locations.add(flight_location.id)
                 if has_intersection(flight_location, cell):
-                    labels.add(label)
-
-        flight_ids = {flight_location.flight.id 
-                        for label in labels 
-                        for flight_location in section.get_flight_locations(label)}
+                    intersected_flight_locations.add(flight_location.id)
         
         impact = None
-        if len(all_flight_ids) > 0 and len(flight_ids) > 0:
-            impact = len(flight_ids) / len(all_flight_ids)
+        if len(all_flight_locations) > 0 and len(intersected_flight_locations) > 0:
+            impact = len(intersected_flight_locations) / len(all_flight_locations)
         return impact
