@@ -4,7 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from engine.models._obstacle import Obstacle
+# from engine.models._obstacle import Obstacle
 from engine.algorithms.dbscan import DBSCAN
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
@@ -119,6 +119,7 @@ def _check_intersection_between_section_cell(section, cell):
         # run classifier first
         section.run_classifier()
 
+        # TODO: why not flight_location instead of flight_id?
         labels = set()
         all_flight_ids = set()
         for label, flight_locations in section:

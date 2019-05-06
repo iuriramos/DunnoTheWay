@@ -15,4 +15,4 @@ filepath = os.path.join(LOGS_DIR, filename)
 LOG_FORMAT = '%(levelname)s %(asctime)s - %(message)s'
 
 logging.basicConfig(filename=filepath, filemode='a', level=logging.DEBUG, format=LOG_FORMAT)
-logger = logging.getLogger()
+logger = logging.getLogger('sqlalchemy.engine')

@@ -3,6 +3,7 @@ from sqlalchemy import Column, Numeric, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from common.db import Base
 from common.utils import from_timestamp_to_datetime
+# from .flight import Flight
 
 
 class FlightLocation(Base):
@@ -15,7 +16,7 @@ class FlightLocation(Base):
     altitude = Column(Numeric, nullable=False)
     speed = Column(Numeric, nullable=False)
     flight_id = Column(Integer, ForeignKey('flights.id'), nullable=False)
-    flight = relationship("Flight", back_populates="flight_locations")
+    # flight = relationship('Flight', back_populates='flight_locations')
 
     def __init__(self, timestamp, longitude, latitude, altitude, speed, flight):
         self.timestamp = timestamp

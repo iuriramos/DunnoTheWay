@@ -40,7 +40,7 @@ def fetch_airline_companies():
 # create database tables
 Base.metadata.create_all(engine)
 
-# check if table names exists via inspect
+# TODO (notworking): check if table names exists via inspect
 ins = inspect(engine)
 if not ins.get_table_names():
     setup_environment()

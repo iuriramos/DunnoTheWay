@@ -76,6 +76,8 @@ def _update_flight_addresses(departure_airport, destination_airport, round_trip_
 
 def _get_flight_addresses_from_airports(departure_airport, destination_airport):
     '''Return flight ICAO24 addresses from departure airport to destination airport'''
+    global session
+
     callsigns = Airport.callsigns_from_airports(
         session, departure_airport, destination_airport)
     bbox = bounding_box_related_to_airports(
@@ -86,6 +88,8 @@ def _get_flight_addresses_from_airports(departure_airport, destination_airport):
     return addresses
 
 def _get_addresses_within_brazilian_airspace():
+    global session
+
     bbox = BRAZILIAN_AIRSPACE_BBOX
     callsigns = FlightPlan.all_callsigns(session)
     addresses = _get_addresses_from_callsigns_inside_bounding_box(callsigns, bbox)
@@ -122,6 +126,8 @@ def _update_finished_flights(address_to_flight, addresses):
 
 def _update_current_flights(address_to_flight, addresses):
     '''Update address to flight mapping with current values of addresses'''
+    global session
+    
     logger.info('Update current flights: {0}'.format(addresses))
 
     for state in get_states_from_addresses(addresses):
@@ -135,6 +141,8 @@ def _update_current_flights(address_to_flight, addresses):
 
 def _save_flight(flight):
     '''Save flight information in database (flight locations included)'''
+    global session
+
     logger.info('Save flight {0!r}'.format(flight))
     session.add(flight)
     session.commit()

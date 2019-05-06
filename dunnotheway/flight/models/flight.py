@@ -44,3 +44,6 @@ class Flight(Base):
                 unique_flight_locations.append(curr)
             prev = curr
         self.flight_locations = unique_flight_locations
+
+
+FlightLocation.flight = relationship('Flight', back_populates='flight_locations')

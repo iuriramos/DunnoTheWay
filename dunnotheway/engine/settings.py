@@ -5,7 +5,7 @@ from common.settings import BASE_DIR
 
 
 # load config file
-CONFIG_PATH = os.path.join(BASE_DIR, 'analyser', 'config.json')
+CONFIG_PATH = os.path.join(BASE_DIR, 'engine', 'config.json')
 with open(CONFIG_PATH) as f:
     config = json.load(f)
 
