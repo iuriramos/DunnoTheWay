@@ -4,7 +4,7 @@ import hdbscan
 
 from common.utils import distance_three_dimensions_coordinates
 from engine.models.section import Section
-from engine.settings import (DBSCAN_NUMBER_SAMPLES_CLUSTER,
+from engine.settings import (MIN_NUMBER_SAMPLES,
                              NUMBER_ENTRIES_PER_SECTION)
 
 
@@ -21,7 +21,7 @@ class HDBSCAN:
     def __init__(self, section):
         self.section = section
         self.classifier = hdbscan.HDBSCAN(
-            min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
+            min_samples=MIN_NUMBER_SAMPLES,
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)

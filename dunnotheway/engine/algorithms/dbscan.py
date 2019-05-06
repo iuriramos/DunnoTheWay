@@ -4,8 +4,8 @@ from sklearn.cluster import DBSCAN as _DBSCAN
 
 from common.utils import distance_three_dimensions_coordinates
 from engine.models.section import Section
-from engine.settings import (DBSCAN_MAXIMUM_DISTANCE,  # TODO: Include eps
-                             DBSCAN_NUMBER_SAMPLES_CLUSTER,
+from engine.settings import (MAXIMUM_DISTANCE_BETWEEN_SAMPLES,  # TODO: Include eps
+                             MIN_NUMBER_SAMPLES,
                              NUMBER_ENTRIES_PER_SECTION)
 
 
@@ -22,8 +22,8 @@ class DBSCAN:
     def __init__(self, section):
         self.section = section
         self.classifier = _DBSCAN(
-            eps=DBSCAN_MAXIMUM_DISTANCE, 
-            min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER, 
+            eps=MAXIMUM_DISTANCE_BETWEEN_SAMPLES, 
+            min_samples=MIN_NUMBER_SAMPLES, 
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)
