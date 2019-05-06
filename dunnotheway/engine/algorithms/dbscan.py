@@ -16,6 +16,7 @@ def run_classifier_before(func):
 
 
 class DBSCAN:
+    '''DBSCAN Class'''
     
     def __init__(self, section):
         self.section = section
@@ -55,11 +56,12 @@ class DBSCAN:
                     float(flight_location.latitude), 
                     float(flight_location.longitude), 
                     float(flight_location.altitude),
-                ) for flight_location in self.section.flight_locations
+                ) 
+                for flight_location in self.section.flight_locations
             ]
             self.classifier.fit(train_set)
-            self._build_label_to_flight_locations()
             self._has_run_classifier = True
+            self._build_label_to_flight_locations()
 
     def _build_label_to_flight_locations(self):
         for flight_location, label in zip(
