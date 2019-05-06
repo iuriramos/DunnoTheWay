@@ -1,7 +1,6 @@
 from collections import defaultdict, namedtuple
 
-import hdbscan
-
+from sklearn.cluster import OPTICS as _OPTICS
 from common.utils import distance_three_dimensions_coordinates
 from engine.models.section import Section
 from engine.settings import (DBSCAN_NUMBER_SAMPLES_CLUSTER,
@@ -15,12 +14,12 @@ def run_classifier_before(func):
     return wrapper
 
 
-class HDBSCAN:
-    '''Section wrapper class implementing HDBSCAN to delimit the points in the airways'''
+class OPTICS:
+    '''Section wrapper class implementing OPTICS to delimit the points in the airways'''
 
     def __init__(self, section):
         self.section = section
-        self.classifier = hdbscan.HDBSCAN(
+        self.classifier = _OPTICS(
             min_samples=DBSCAN_NUMBER_SAMPLES_CLUSTER,
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False

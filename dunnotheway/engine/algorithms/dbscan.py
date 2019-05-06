@@ -1,11 +1,12 @@
 from collections import defaultdict, namedtuple
+
 from sklearn.cluster import DBSCAN as _DBSCAN
 
 from common.utils import distance_three_dimensions_coordinates
 from engine.models.section import Section
-
-from engine.settings import (DBSCAN_MAXIMUM_DISTANCE, DBSCAN_NUMBER_SAMPLES_CLUSTER,
-                       NUMBER_ENTRIES_PER_SECTION)
+from engine.settings import (DBSCAN_MAXIMUM_DISTANCE,  # TODO: Include eps
+                             DBSCAN_NUMBER_SAMPLES_CLUSTER,
+                             NUMBER_ENTRIES_PER_SECTION)
 
 
 def run_classifier_before(func):
