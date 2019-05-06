@@ -33,12 +33,16 @@ def distance_two_dimensions_coordinates(this_coordinate, that_coordinate):
     For variables naming refer to: https://www.movable-type.co.uk/scripts/latlong.html'''
     lat1, lon1 = this_coordinate
     lat2, lon2 = that_coordinate
-    l1, l2 = np.radians(lat1), np.radians(lat2)
-    dlat, dlon = np.radians(lat2-lat1), np.radians(lon2-lon1)
-    a = math.sin(dlat/2)**2 + math.cos(l1) * math.cos(l2) * (math.sin(dlon/2)**2)
+    dlat = math.radians(lat2-lat1)
+    dlon = math.radians(lon2-lon1)
+    lat1, lat2 = math.radians(lat1), math.radians(lat2)
+    
+    a = math.sin(dlat/2)**2 + (
+        math.cos(lat1) * math.cos(lat2) * (math.sin(dlon/2)**2))
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    distance = RADIUS_EARTH * c
-    return distance
+    d = RADIUS_EARTH * c
+    return d
+
 
 def distance_three_dimensions_coordinates(this_coordinate, that_coordinate):
     '''Measure distance in meters between two 3-d points (latitude, longitude, altitude).
