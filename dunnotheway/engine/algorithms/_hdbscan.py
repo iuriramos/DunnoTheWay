@@ -34,16 +34,6 @@ class DBSCAN:
         for flight_locations in self._label_to_flight_locations.values():
             yield from flight_locations
 
-    @run_classifier_before
-    def predict_label_from_record(self, record):
-        try:
-            labels, _ = hdbscan.approximate_predict(
-                self.classifier, [record])
-            label = labels[0]
-        except AttributeError as _e:
-            label = -1
-        return label
-
     @property
     def section_point(self):
         return self.section.section_point
