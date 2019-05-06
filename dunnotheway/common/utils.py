@@ -56,7 +56,7 @@ def distance_three_dimensions_coordinates(this_coordinate, that_coordinate):
 def get_rect_coordinates(coordinate):
     '''Convert polar coordinates to rectagular'''
     lat, lon, alt = coordinate
-    lat, lon = np.radians(lat), np.radians(lon)
+    lat, lon = math.radians(lat), math.radians(lon)
     alt += RADIUS_EARTH
     x = alt * math.sin(lon) * math.cos(lat) 
     y = alt * math.cos(lon) * math.cos(lat)
