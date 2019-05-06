@@ -16,8 +16,8 @@ def run_classifier_before(func):
 
 
 class DBSCAN:
-    '''DBSCAN Class'''
-    
+    '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
+
     def __init__(self, section):
         self.section = section
         self.classifier = _DBSCAN(
