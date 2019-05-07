@@ -41,7 +41,7 @@ def search_intersections_convection_cells(airport_tracking_list=None):
 
 
 def _gen_departure_destination_airports(airport_tracking_list):
-    airport_tracking_list = airport_tracking_list or []
+    airport_tracking_list = airport_tracking_list or _gen_default_airport_tracking_list()
 
     for departure_airport_code, destination_airport_code in airport_tracking_list:
         departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
@@ -49,12 +49,19 @@ def _gen_departure_destination_airports(airport_tracking_list):
         yield departure_airport, destination_airport
 
 
+def _gen_default_airport_tracking_list():
+    for departure_airport in session.query(Airport).all():
+        for destination_airport in session.query(Airport).all():
+            if departure_airport != destination_airport:
+                yield departure_airport, destination_airport
+
+
 def _check_multiple_intersections(
     departure_airport, destination_airport, convection_cells):
     intersections = []
     
     sections = DBSCAN.sections_from_airports(
-                    departure_airport, destination_airport)
+        departure_airport, destination_airport, min_entries_per_section=3)
     
     longitude_based = Airport.should_be_longitude_based(
         departure_airport, destination_airport)
@@ -65,6 +72,9 @@ def _check_multiple_intersections(
         key=(lambda x: reference_point(x, longitude_based)), 
         reverse=(not follow_ascending_order))
     
+    if not sections or not convection_cells:
+        return intersections
+
     iter_sections, iter_cells = iter(sections), iter(convection_cells)
     section, cell = next(iter_sections), next(iter_cells)
 
