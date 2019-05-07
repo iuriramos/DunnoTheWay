@@ -25,7 +25,7 @@ class DBSCAN:
         self.section = section
         self.classifier = _DBSCAN(
             eps=eps, 
-            min_samples=min_samples=, 
+            min_samples=min_samples, 
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)
