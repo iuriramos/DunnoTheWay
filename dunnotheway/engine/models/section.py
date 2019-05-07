@@ -29,8 +29,12 @@ class Section:
         yield from self.flight_locations
       
     @staticmethod
-    def sections_from_airports(departure_airport, destination_airport):
+    def sections_from_airports(
+        departure_airport, destination_airport, 
+        min_entries_per_section=None):
         '''Return sections from flight locations'''
+        if min_entries_per_section is None:
+            min_entries_per_section = NUMBER_ENTRIES_PER_SECTION
         # retrieve flight locations
         with open_database_session() as session:
             flight_locations = normalizer.normalized_flight_locations_from_airports(
@@ -52,7 +56,7 @@ class Section:
                 prev_flight_location, curr_flight_location, longitude_based):
                 section_flight_locations.append(curr_flight_location)
             else:
-                if len(section_flight_locations) >= NUMBER_ENTRIES_PER_SECTION:
+                if len(section_flight_locations) >= min_entries_per_section:
                     section = Section.from_flight_locations(section_flight_locations)
                     sections.append(section)
                 section_flight_locations = [curr_flight_location]

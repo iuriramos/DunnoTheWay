@@ -46,11 +46,12 @@ class DBSCAN:
         return self.section.longitude_based
       
     @staticmethod
-    def sections_from_airports(departure_airport, destination_airport):
+    def sections_from_airports(
+        departure_airport, destination_airport, min_entries_per_section=None):
         '''Return sections from flight locations'''
         return [DBSCAN(section) 
             for section in Section.sections_from_airports(
-                departure_airport, destination_airport)]
+                departure_airport, destination_airport, min_entries_per_section)]
 
     def run_classifier(self):
         if not self._has_run_classifier:
