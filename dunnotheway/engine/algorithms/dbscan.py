@@ -19,11 +19,13 @@ def run_classifier_before(func):
 class DBSCAN:
     '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
 
-    def __init__(self, section):
+    # TODO: Consider to use a range of (eps, min_samples)
+    def __init__(
+        self, section, eps=MAXIMUM_DISTANCE_BETWEEN_SAMPLES, min_samples=MIN_NUMBER_SAMPLES):
         self.section = section
         self.classifier = _DBSCAN(
-            eps=MAXIMUM_DISTANCE_BETWEEN_SAMPLES, 
-            min_samples=MIN_NUMBER_SAMPLES, 
+            eps=eps, 
+            min_samples=min_samples=, 
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)
