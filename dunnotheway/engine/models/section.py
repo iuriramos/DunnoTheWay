@@ -24,6 +24,9 @@ class Section:
 
     def __repr__(self):
         return 'Section({sp})'.format(sp=self.section_point)
+
+    def __iter__(self):
+        yield from self.flight_locations
       
     @staticmethod
     def sections_from_airports(departure_airport, destination_airport):
