@@ -112,6 +112,3 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-
-# unused files
-_*.py
