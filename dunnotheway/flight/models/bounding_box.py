@@ -25,3 +25,9 @@ def bounding_box_related_to_airports(departure_airport, destination_airport):
         float(max(departure_airport.latitude, destination_airport.latitude)),
         float(min(departure_airport.longitude, destination_airport.longitude)), 
         float(max(departure_airport.longitude, destination_airport.longitude)))
+
+def is_coordinate_inside_bounding_box(coordinate, bbox):
+    lat, lon = coordinate
+    return (bbox.min_latitude <= lat <= bbox.max_latitude and 
+            bbox.min_longitude <= lon <= bbox.max_longitude)
+            

@@ -1,7 +1,11 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import relationship
+
 from common.db import Base
+from flight.models.bounding_box import (bounding_box_related_to_airports,
+                                        is_coordinate_inside_bounding_box)
 
 
 class ConvectionCell(Base):
@@ -36,3 +40,10 @@ class ConvectionCell(Base):
     @staticmethod
     def all_convection_cells(session):
         return session.query(ConvectionCell).all()
+
+    def is_convection_cells_between_airports(self, departure_airport, destination_airport):
+        bbox = bounding_box_related_to_airports(departure_airport, destination_airport)
+        return is_coordinate_inside_bounding_box(
+            coordinate=(self.latitude, self.longitude), bbox=bbox)
+
+            

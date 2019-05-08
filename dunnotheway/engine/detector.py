@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # from engine.models._obstacle import Obstacle
-from engine.algorithms.dbscan import DBSCAN
+from engine.algorithms import dbscan, hdbscan # TODO: enable optics module 
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
 from flight.models.airport import Airport
@@ -24,44 +24,64 @@ reference_point = (lambda x, longitude_based:
     x.longitude if longitude_based else x.latitude)
 
 
+ALGORITHM_MAP = {
+    None: dbscan.DBSCAN,
+    'DBSCAN': dbscan.DBSCAN,
+    'HDBSCAN': hdbscan.HDBSCAN,
+    # 'OPTICS': optics.OPTICS,
+}
+
+
 # TODO: leverage IntersectionManager to handle intersections
-def search_intersections_convection_cells(airport_tracking_list=None):
+def search_intersections_convection_cells(
+    airport_tracking_list=None, algorithm_name=None, **kwargs):
     global session
     intersections = []
 
     with open_database_session() as session:
-        convection_cells = ConvectionCell.all_convection_cells(session)
+        all_convection_cells = ConvectionCell.all_convection_cells(session)
         
         for departure_airport, destination_airport in (
             _gen_departure_destination_airports(airport_tracking_list)):
+            convection_cells = [
+                cell for cell in all_convection_cells 
+                    if cell.is_convection_cells_between_airports(
+                        departure_airport, destination_airport)]
             intersections += _check_multiple_intersections(
-                destination_airport, departure_airport, convection_cells)
+                destination_airport, departure_airport, 
+                convection_cells, algorithm_name, **kwargs)
 
     return [intersection.convection_cell for intersection in intersections]
 
 
 def _gen_departure_destination_airports(airport_tracking_list):
-    airport_tracking_list = airport_tracking_list or _gen_default_airport_tracking_list()
-
-    for departure_airport_code, destination_airport_code in airport_tracking_list:
-        departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
-        destination_airport = Airport.airport_from_icao_code(session, destination_airport_code)
-        yield departure_airport, destination_airport
+    if airport_tracking_list is None:
+        yield from _gen_default_airport_tracking_list()
+    else:
+        for departure_airport_code, destination_airport_code in airport_tracking_list:
+            departure_airport = Airport.airport_from_icao_code(session, departure_airport_code)
+            destination_airport = Airport.airport_from_icao_code(session, destination_airport_code)
+            yield departure_airport, destination_airport
 
 
 def _gen_default_airport_tracking_list():
-    for departure_airport in session.query(Airport).all():
-        for destination_airport in session.query(Airport).all():
+    all_airports = session.query(Airport).all()
+    for departure_airport in all_airports:
+        for destination_airport in all_airports:
             if departure_airport != destination_airport:
                 yield departure_airport, destination_airport
 
 
 def _check_multiple_intersections(
-    departure_airport, destination_airport, convection_cells):
+    departure_airport, destination_airport, convection_cells, algorithm_name=None, **kwargs):
     intersections = []
     
-    sections = DBSCAN.sections_from_airports(
-        departure_airport, destination_airport, min_entries_per_section=3)
+    algorithm = ALGORITHM_MAP[algorithm_name]
+    sections = algorithm.sections_from_airports(
+        departure_airport, 
+        destination_airport, 
+        **kwargs,
+    )
     
     longitude_based = Airport.should_be_longitude_based(
         departure_airport, destination_airport)
