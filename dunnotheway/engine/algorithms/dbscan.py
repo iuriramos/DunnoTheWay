@@ -19,13 +19,13 @@ def run_classifier_before(func):
 class DBSCAN:
     '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
 
-    # TODO: Consider to use a range of (eps, min_samples)
-    def __init__(
-        self, section, eps=MAXIMUM_DISTANCE_BETWEEN_SAMPLES, min_samples=MIN_NUMBER_SAMPLES):
+    def __init__(self, section, **kwargs):
         self.section = section
+        self.eps = kwargs.get('max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
+        self.min_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
         self.classifier = _DBSCAN(
-            eps=eps, 
-            min_samples=min_samples, 
+            eps=self.eps, 
+            min_samples=self.min_samples, 
             metric=distance_three_dimensions_coordinates)
         self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)
@@ -47,11 +47,11 @@ class DBSCAN:
       
     @staticmethod
     def sections_from_airports(
-        departure_airport, destination_airport, min_entries_per_section=None):
+        departure_airport, destination_airport, **kwargs):
         '''Return sections from flight locations'''
-        return [DBSCAN(section) 
+        return [DBSCAN(section, **kwargs) 
             for section in Section.sections_from_airports(
-                departure_airport, destination_airport, min_entries_per_section)]
+                departure_airport, destination_airport, **kwargs)]
 
     def run_classifier(self):
         if not self._has_run_classifier:

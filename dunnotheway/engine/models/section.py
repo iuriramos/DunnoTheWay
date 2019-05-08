@@ -29,12 +29,10 @@ class Section:
         yield from self.flight_locations
       
     @staticmethod
-    def sections_from_airports(
-        departure_airport, destination_airport, 
-        min_entries_per_section=None):
+    def sections_from_airports(departure_airport, destination_airport, **kwargs):
         '''Return sections from flight locations'''
-        if min_entries_per_section is None:
-            min_entries_per_section = NUMBER_ENTRIES_PER_SECTION
+        min_entries_per_section = kwargs.get(
+            'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
         # retrieve flight locations
         with open_database_session() as session:
             flight_locations = normalizer.normalized_flight_locations_from_airports(
