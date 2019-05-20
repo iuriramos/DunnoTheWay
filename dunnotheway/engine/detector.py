@@ -137,8 +137,6 @@ def distance_between_section_and_cell(section, cell):
         min_distance = min(
             min_distance, 
             distance_between_flight_location_and_cell(flight_location, cell))
-    # assert min_distance != float('infinity'), \
-    #     'section was not iterated through'
     return min_distance
 
 
