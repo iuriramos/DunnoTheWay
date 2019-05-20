@@ -33,7 +33,7 @@ class Section:
         '''Return sections from flight locations'''
         min_entries_per_section = kwargs.get(
             'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
-        # retrieve flight locations
+        
         with open_database_session() as session:
             flight_locations = normalizer.normalized_flight_locations_from_airports(
                 session, departure_airport, destination_airport)

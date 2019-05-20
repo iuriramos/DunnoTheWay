@@ -133,10 +133,12 @@ def _check_multiple_intersections(
 
 def distance_between_section_and_cell(section, cell):
     min_distance = float('infinity')
-    for flight_location in section:
+    for flight_location in list(section):
         min_distance = min(
             min_distance, 
             distance_between_flight_location_and_cell(flight_location, cell))
+    # assert min_distance != float('infinity'), \
+    #     'section was not iterated through'
     return min_distance
 
 
@@ -151,9 +153,6 @@ def measure_impact_convection_cell_on_section(section, cell):
         def has_intersection(flight_location, cell):
             distance = distance_between_flight_location_and_cell(flight_location, cell)
             return distance < cell.radius
-
-        # run classifier first
-        section.run_classifier()
 
         all_flight_locations = set()
         intersected_flight_locations = set()

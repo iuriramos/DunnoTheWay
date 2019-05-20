@@ -9,13 +9,6 @@ from engine.settings import (MAXIMUM_DISTANCE_BETWEEN_SAMPLES,  # TODO: Include 
                              NUMBER_ENTRIES_PER_SECTION)
 
 
-def run_classifier_before(func):
-    def wrapper(self, *args, **kwargs):
-        self.run_classifier()
-        return func(self, *args, **kwargs)
-    return wrapper
-
-
 class DBSCAN:
     '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
 
@@ -23,12 +16,13 @@ class DBSCAN:
         self.section = section
         self.eps = kwargs.get('max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
         self.min_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
+        self._label_to_flight_locations = defaultdict(list)
         self.classifier = _DBSCAN(
             eps=self.eps, 
             min_samples=self.min_samples, 
             metric=distance_three_dimensions_coordinates)
-        self._has_run_classifier = False
-        self._label_to_flight_locations = defaultdict(list)
+        # IMPORTANT! run classifier first
+        self.run_classifier() 
 
     def __repr__(self):
         return 'DBSCAN(Section({sp}))'.format(sp=self.section.section_point)
@@ -54,18 +48,17 @@ class DBSCAN:
                 departure_airport, destination_airport, **kwargs)]
 
     def run_classifier(self):
-        if not self._has_run_classifier:
-            train_set = [
-                (
-                    float(flight_location.latitude), 
-                    float(flight_location.longitude), 
-                    float(flight_location.altitude),
-                ) 
-                for flight_location in self.section.flight_locations
-            ]
-            self.classifier.fit(train_set)
-            self._has_run_classifier = True
-            self._build_label_to_flight_locations()
+        clf = self.classifier
+        train_set = [
+            (
+                float(flight_location.latitude), 
+                float(flight_location.longitude), 
+                float(flight_location.altitude),
+            ) 
+            for flight_location in self.section.flight_locations
+        ]
+        clf.fit(train_set)
+        self._build_label_to_flight_locations()
 
     def _build_label_to_flight_locations(self):
         for flight_location, label in zip(
@@ -73,11 +66,3 @@ class DBSCAN:
             if label != -1: # unclassified flight_locations
                 self._label_to_flight_locations[label].append(flight_location)
     
-    @run_classifier_before
-    def get_flight_locations(self, label):
-        return self._label_to_flight_locations[label]
-    
-    @property
-    @run_classifier_before
-    def labels(self):
-        return self.classifier.labels_
