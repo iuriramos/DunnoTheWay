@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # from engine.models._obstacle import Obstacle
-from engine.algorithms import dbscan, hdbscan # TODO: enable optics module 
 from common.db import open_database_session
 from common.utils import distance_two_dimensions_coordinates
+from engine.algorithms import dbscan, hdbscan 
 from flight.models.airport import Airport
 from flight.models.flight import Flight
 from flight.models.flight_location import FlightLocation
@@ -19,11 +19,6 @@ matplotlib.use('Agg')
 
 session = None
 
-
-reference_point = (lambda x, longitude_based: 
-    x.longitude if longitude_based else x.latitude)
-
-
 ALGORITHM_MAP = {
     None: dbscan.DBSCAN,
     'DBSCAN': dbscan.DBSCAN,
@@ -32,27 +27,36 @@ ALGORITHM_MAP = {
 }
 
 
-# TODO: leverage IntersectionManager to handle intersections
+reference_point = (lambda x, longitude_based: 
+    x.longitude if longitude_based else x.latitude)
+
+
+
 def search_intersections_convection_cells(
     airport_tracking_list=None, algorithm_name=None, **kwargs):
     global session
-    intersections = []
+
+    manager = IntersectionManager()
 
     with open_database_session() as session:
         all_convection_cells = ConvectionCell.all_convection_cells(session)
         
         for departure_airport, destination_airport in (
             _gen_departure_destination_airports(airport_tracking_list)):
+            # filter convection cells withing departure and destination airports
             convection_cells = [
                 cell for cell in all_convection_cells 
                     if cell.is_convection_cells_between_airports(
                         departure_airport, destination_airport)]
-            intersections += _check_multiple_intersections(
+            # find intersections
+            intersections = _check_multiple_intersections(
                 destination_airport, departure_airport, 
                 convection_cells, algorithm_name, **kwargs)
+            # record results
+            for intersection in intersections:
+                manager.set_intersection(intersection)
 
-    return [intersection.convection_cell for intersection in intersections]
-
+    return manager
 
 def _gen_departure_destination_airports(airport_tracking_list):
     if airport_tracking_list is None:
