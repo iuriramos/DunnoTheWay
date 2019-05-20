@@ -50,7 +50,7 @@ def search_intersections_convection_cells(
                         departure_airport, destination_airport)]
             # find intersections
             intersections = _check_multiple_intersections(
-                destination_airport, departure_airport, 
+                departure_airport, destination_airport,  
                 convection_cells, algorithm_name, **kwargs)
             # record results
             for intersection in intersections:
