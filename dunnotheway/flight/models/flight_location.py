@@ -46,6 +46,11 @@ class FlightLocation(Base):
             flight=flight
         )        
 
+    @property
+    def coordinates(self):
+        '''Transform flight location into raw tuple (latitude, longitude, altitude)'''
+        return (float(self.latitude), float(self.longitude), float(self.altitude)) 
+
     @staticmethod
     def check_equal_flight_locations(this, that):
         return (this and that and 

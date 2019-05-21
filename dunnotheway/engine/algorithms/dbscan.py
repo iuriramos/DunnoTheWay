@@ -28,6 +28,7 @@ class DBSCAN:
         return 'DBSCAN(Section({sp}))'.format(sp=self.section.section_point)
     
     def __iter__(self):
+        '''Return CLUSTERIZED flight locations'''
         for flight_locations in self._label_to_flight_locations.values():
             yield from flight_locations
 
@@ -48,21 +49,22 @@ class DBSCAN:
                 departure_airport, destination_airport, **kwargs)]
 
     def run_classifier(self):
-        clf = self.classifier
         train_set = [
-            (
-                float(flight_location.latitude), 
-                float(flight_location.longitude), 
-                float(flight_location.altitude),
-            ) 
-            for flight_location in self.section.flight_locations
-        ]
-        clf.fit(train_set)
+            flight_location.coordinates
+            for flight_location in self.flight_locations]
+        self.classifier.fit(train_set)
         self._build_label_to_flight_locations()
 
     def _build_label_to_flight_locations(self):
-        for flight_location, label in zip(
-            self.section.flight_locations, self.classifier.labels_):
+        for flight_location, label in zip(self.flight_locations, self.labels):
             if label != -1: # unclassified flight_locations
                 self._label_to_flight_locations[label].append(flight_location)
     
+    @property
+    def flight_locations(self):
+        '''Return ALL (normalized) flight locations'''
+        return self.section.flight_locations
+
+    @property
+    def labels(self):
+        return self.classifier.labels_
