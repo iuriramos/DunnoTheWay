@@ -12,7 +12,8 @@ class HDBSCAN:
     '''Section wrapper class implementing HDBSCAN to delimit the points in the airways'''
 
     def __init__(self, section, **kwargs):
-        min_number_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
+        min_number_samples = kwargs.get(
+            'min_number_samples', MIN_NUMBER_SAMPLES)
         self.section = section
         self._label_to_flight_locations = defaultdict(list)
         self.classifier = hdbscan.HDBSCAN(
