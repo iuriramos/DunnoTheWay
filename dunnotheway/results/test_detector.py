@@ -3,6 +3,7 @@ import functools
 
 from common.db import open_database_session
 from engine.detector import search_intersections_convection_cells, ALGORITHM_MAP
+from engine.plot import plot_sections
 from engine.models.section import Section
 from flight.models.flight_plan import FlightPlan
 from flight.models.flight_location import FlightLocation
@@ -87,7 +88,8 @@ def get_normalization_results(manager, min_entries_per_section):
                 len(section) for section in sections)
 
             # ratio: positions -> positions'
-            print ('Normalization ratio - ', count_normalized_flight_positions // count_flight_positions)
+            print ('Normalization ratio - ', 
+                count_normalized_flight_positions // count_flight_positions)
 
             # TODO(maybe) - PLOT airways in 3D
             sections
@@ -133,10 +135,11 @@ def get_delimitation_results(
         # print (noise_flight_positions.average())
 
         # ratio: positions' -> positions''
-        print ('Normalization ratio - ', count_clusterized_flight_positions.sum() // count_normalized_flight_positions.sum())
+        print ('Normalization ratio - ', 
+            count_clusterized_flight_positions.sum() // count_normalized_flight_positions.sum())
 
-        # TODO - PLOT sections and clusters
-
+        # PLOT sections 
+        plot_sections(wrapper_sections, number_sections=-1) # plot ALL sections
 
 def get_intersection_results(manager):
     for (departure_airport, destination_airport), intersections in manager.items():
