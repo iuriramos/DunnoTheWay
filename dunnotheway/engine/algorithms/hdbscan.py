@@ -8,28 +8,24 @@ from engine.settings import (MIN_NUMBER_SAMPLES,
                              NUMBER_ENTRIES_PER_SECTION)
 
 
-def run_classifier_before(func):
-    def wrapper(self, *args, **kwargs):
-        self.run_classifier()
-        return func(self, *args, **kwargs)
-    return wrapper
-
-
 class HDBSCAN:
     '''Section wrapper class implementing HDBSCAN to delimit the points in the airways'''
 
-    def __init__(self, section):
+    def __init__(self, section, **kwargs):
+        min_number_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
         self.section = section
-        self.classifier = hdbscan.HDBSCAN(
-            min_samples=MIN_NUMBER_SAMPLES,
-            metric=distance_three_dimensions_coordinates)
-        self._has_run_classifier = False
         self._label_to_flight_locations = defaultdict(list)
+        self.classifier = hdbscan.HDBSCAN(
+            min_samples=min_number_samples,
+            metric=distance_three_dimensions_coordinates)
+        # IMPORTANT! run classifier first
+        self.run_classifier() 
 
     def __repr__(self):
-        return 'DBSCAN(Section({sp}))'.format(sp=self.section.section_point)
+        return 'HDBSCAN(Section({sp}))'.format(sp=self.section.section_point)
     
     def __iter__(self):
+        '''Return CLUSTERIZED flight locations'''
         for flight_locations in self._label_to_flight_locations.values():
             yield from flight_locations
 
@@ -42,37 +38,30 @@ class HDBSCAN:
         return self.section.longitude_based
       
     @staticmethod
-    def sections_from_airports(departure_airport, destination_airport):
+    def sections_from_airports(
+        departure_airport, destination_airport, **kwargs):
         '''Return sections from flight locations'''
-        return [DBSCAN(section) 
+        return [HDBSCAN(section, **kwargs) 
             for section in Section.sections_from_airports(
-                departure_airport, destination_airport)]
+                departure_airport, destination_airport, **kwargs)]
 
     def run_classifier(self):
-        if not self._has_run_classifier:
-            train_set = [
-                (
-                    float(flight_location.latitude), 
-                    float(flight_location.longitude), 
-                    float(flight_location.altitude),
-                ) 
-                for flight_location in self.section.flight_locations
-            ]
-            self.classifier.fit(train_set)
-            self._has_run_classifier = True
-            self._build_label_to_flight_locations()
+        train_set = [
+            flight_location.coordinates
+            for flight_location in self.flight_locations]
+        self.classifier.fit(train_set)
+        self._build_label_to_flight_locations()
 
     def _build_label_to_flight_locations(self):
-        for flight_location, label in zip(
-            self.section.flight_locations, self.classifier.labels_):
+        for flight_location, label in zip(self.flight_locations, self.labels):
             if label != -1: # unclassified flight_locations
                 self._label_to_flight_locations[label].append(flight_location)
     
-    @run_classifier_before
-    def get_flight_locations(self, label):
-        return self._label_to_flight_locations[label]
-    
     @property
-    @run_classifier_before
+    def flight_locations(self):
+        '''Return ALL (normalized) flight locations'''
+        return self.section.flight_locations
+
+    @property
     def labels(self):
         return self.classifier.labels_
