@@ -1,6 +1,6 @@
 # General
 Pipfile
-notebooks/
+analysis/
 logs/
 reports/
 .vscode/
