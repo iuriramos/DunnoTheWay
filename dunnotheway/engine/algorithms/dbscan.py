@@ -13,13 +13,13 @@ class DBSCAN:
     '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
 
     def __init__(self, section, **kwargs):
+        eps = kwargs.get('max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
+        min_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
         self.section = section
-        self.eps = kwargs.get('max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
-        self.min_samples = kwargs.get('min_number_samples', MIN_NUMBER_SAMPLES)
         self._label_to_flight_locations = defaultdict(list)
         self.classifier = _DBSCAN(
-            eps=self.eps, 
-            min_samples=self.min_samples, 
+            eps=eps, 
+            min_samples=min_samples, 
             metric=distance_three_dimensions_coordinates)
         # IMPORTANT! run classifier first
         self.run_classifier() 
