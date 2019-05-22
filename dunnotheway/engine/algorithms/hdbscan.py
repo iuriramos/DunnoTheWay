@@ -30,6 +30,9 @@ class HDBSCAN:
         for flight_locations in self._label_to_flight_locations.values():
             yield from flight_locations
 
+    def __len__(self):
+        return sum(len(flight_locations) for flight_locations in self._label_to_flight_locations.values())
+
     @property
     def section_point(self):
         return self.section.section_point

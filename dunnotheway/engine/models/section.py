@@ -27,6 +27,9 @@ class Section:
 
     def __iter__(self):
         yield from self.flight_locations
+
+    def __len__(self):
+        return len(self.flight_locations)
       
     @staticmethod
     def sections_from_airports(departure_airport, destination_airport, **kwargs):
