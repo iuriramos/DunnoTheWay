@@ -1,3 +1,7 @@
+import sys
+sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
+
+
 import numpy as np
 import functools
 
@@ -5,6 +9,7 @@ from common.db import open_database_session
 from engine.detector import search_intersections_convection_cells, ALGORITHM_MAP
 from engine.plot import plot_sections
 from engine.models.section import Section
+from flight.models.flight import Flight
 from flight.models.flight_plan import FlightPlan
 from flight.models.flight_location import FlightLocation
 
@@ -76,8 +81,8 @@ def get_normalization_results(manager, min_entries_per_section):
             count_flight_positions = sum(1 
                 for flight_plan in (FlightPlan.
                     flight_plans_from_airports(session, departure_airport, destination_airport))
-                    for flight_location in session.query(FlightLocation).filter(
-                        FlightLocation.flight.flight_plan == flight_plan))
+                    for flight_location in session.query(FlightLocation).join(Flight)
+                        .filter(Flight.flight_plan == flight_plan))
             
             # (# positions) - (# positions')
             sections = Section.sections_from_airports(
@@ -93,6 +98,7 @@ def get_normalization_results(manager, min_entries_per_section):
 
             # TODO(maybe) - PLOT airways in 3D
             sections
+
 
 def get_delimitation_results(
     manager, algorithm_name, min_entries_per_section, 
@@ -141,17 +147,22 @@ def get_delimitation_results(
         # PLOT sections 
         plot_sections(wrapper_sections, number_sections=-1) # plot ALL sections
 
+
 def get_intersection_results(manager):
+    print('#' * 50)
+    print('Intersections Step')
+    print('#' * 50)
+
     for (departure_airport, destination_airport), intersections in manager.items():
         print ('#', departure_airport, destination_airport)
         print ('-' * 50)
 
-        print ('Cell', '    Impact')
+        print ('Cell', 'Impact', sep=' | ')
         for cell, _, _, impact in intersections:
-            print (cell, '->', impact)
+            print (cell, impact, sep=' | ')
 
         impact, cell = max((impact, cell) for cell, _, _, impact in intersections)
-        print ('Most impactful convection cell', cell, '->', impact)
+        print ('Most impactful convection cell: ', cell, ' | ', impact)
 
 
 if __name__ == "__main__":
