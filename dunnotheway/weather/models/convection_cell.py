@@ -27,15 +27,21 @@ class ConvectionCell(Base):
         return 'ConvectionCell({0}, {1}, {2}, {3}, {4})'.format(
             self.id, self.latitude, self.longitude, self.radius, self.timestamp)
 
+    def __iter__(self):
+        yield self.latitude
+        yield self.longitude
+        yield self.radius
+
     def __hash__(self):
-        return hash((self.latitude, self.longitude, self.radius))
+        return hash(tuple(self))
 
     def __eq__(self, other):
         # do not compare cell timesamp 
         # since the same cell might be tracked in different timestamps
-        return (self.latitude == other.latitude and
-                self.longitude == other.longitude and
-                self.radius == other.radius)
+        return tuple(self) == tuple(other)
+
+    def __lt__(self, other):
+        return tuple(self) < tuple(other)
 
     @staticmethod
     def all_convection_cells(session):
