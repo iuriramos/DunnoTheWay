@@ -12,6 +12,12 @@ class Intersection:
         self.departure_airport = departure_airport
         self.destination_airport = destination_airport
         self.impact = impact
+
+    def __iter__(self):
+        yield self.convection_cell 
+        yield self.departure_airport 
+        yield self.destination_airport 
+        yield self.impact
     
 
 class IntersectionManager:
@@ -33,7 +39,7 @@ class IntersectionManager:
 
     def set_intersection(self, intersection):
         key = intersection.departure_airport, intersection.destination_airport
-        self.airports_to_intersections[key] = intersection
+        self.airports_to_intersections[key].append(intersection)
 
 
     def get_intersections(self, departure_airport, destination_airport):
