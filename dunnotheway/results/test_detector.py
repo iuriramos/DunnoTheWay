@@ -39,7 +39,7 @@ MAX_DISTANCE_BETWEEN_SAMPLES_VALS = [1000, 100, 10]
 
 def main():
     for departure_destination_airports in AIRPORT_TRACKING_LIST:
-        filepath = os.path.join(REPORTS_DIR, str(departure_destination_airports))
+        base_filepath = os.path.join(REPORTS_DIR, str(departure_destination_airports))
 
         for (algorithm_name, 
             min_entries_per_section, 
@@ -47,7 +47,7 @@ def main():
             max_distance_between_samples) in gen_params():
 
             filepath = build_filepath_from_params(
-                filepath,
+                base_filepath,
                 algorithm_name, 
                 min_entries_per_section, 
                 min_number_samples, 
