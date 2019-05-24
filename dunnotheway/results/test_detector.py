@@ -98,9 +98,9 @@ def build_filepath_from_params(
     return os.path.join(
         filepath, 
         algorithm_name,
-        '_min_entries_per_section_' + min_entries_per_section +
-        '_min_number_samples_' + min_number_samples +
-        '_max_distance_between_samples_' + max_distance_between_samples,
+        '_min_entries_per_section_' + str(min_entries_per_section) +
+        '_min_number_samples_' + str(min_number_samples) +
+        '_max_distance_between_samples_' + str(max_distance_between_samples),
     )
 
 
