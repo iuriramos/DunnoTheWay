@@ -29,7 +29,7 @@ AIRPORT_TRACKING_LIST = [
     # ('SBFZ', 'SBGR'),
     # ('SBBR', 'SBFZ'),
 
-    ('SBBR', 'SBRJ'),
+     ('SBBR', 'SBRJ'),
 ]
 ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN']
 MIN_ENTRIES_PER_SECTION_VALS = [10, 50, 250]
@@ -98,7 +98,7 @@ def build_filepath_from_params(
     return os.path.join(
         filepath, 
         algorithm_name,
-        '_min_entries_per_section_' + str(min_entries_per_section) +
+        'min_entries_per_section_' + str(min_entries_per_section) +
         '_min_number_samples_' + str(min_number_samples) +
         '_max_distance_between_samples_' + str(max_distance_between_samples),
     )
@@ -135,6 +135,7 @@ def get_normalization_results(filepath, manager, min_entries_per_section):
             )
 
             df.to_csv(path_or_buf=os.path.join(filepath, 'normalization.csv', index=False))
+            a = 1
 
 
 def get_delimitation_results(
@@ -226,10 +227,15 @@ def get_intersection_results(filepath, manager):
 
         intersected_cells = [cell for cell, _, _, impact in intersections]
 
+        ratio = None
+        if cells:
+            ratio = len(intersected_cells) / len(cells)
+
         df = pd.DataFrame(
             data={
                 'Células convectivas': [len(cells)], 
                 'Células convectivas intersectadas': [len(intersected_cells)], 
+                'Proporção': [ratio], 
             }
         )
         df.to_csv(path_or_buf=os.path.join(filepath, 'cells.csv'), index=False)
