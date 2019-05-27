@@ -12,22 +12,14 @@ from common.db import open_database_session
 from engine.models.section import Section
 from flight.models.airport import Airport
 
-from .settings import NUMBER_SECTIONS
-
 
 SIZES = [200, 300, 400, 500, 600]
 COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'black']
 
 
-def plot_sections(filepath, sections, number_sections=NUMBER_SECTIONS):
+def plot_sections(filepath, sections, step=1):
     '''Build cruising paths from departure airport to destination airport'''
-
-    def sections_subset(sections):
-        '''Return at most `NUMBER_SECTIONS` sections'''
-        step = max(1, len(sections)//number_sections)
-        return sections[::step]
-
-    for section in sections_subset(sections):
+    for section in sections[::step]:
         plot_section(filepath, section)
 
 

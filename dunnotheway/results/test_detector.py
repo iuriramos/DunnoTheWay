@@ -22,13 +22,13 @@ from weather.models.convection_cell import ConvectionCell
 REPORTS_DIR = os.path.join(BASE_DIR, 'results', 'reports')
 
 AIRPORT_TRACKING_LIST = [
+     ('SBRJ', 'SBSP'),
      ('SBBR', 'SBRJ'),
      ('SBSP', 'SBRJ'),
      ('SBBR', 'SBSP'),
      ('SBSP', 'SBBR'),
      ('SBFZ', 'SBGR'),
      ('SBBR', 'SBFZ'),
-     ('SBRJ', 'SBSP'),
 ]
 ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN']
 MIN_ENTRIES_PER_SECTION_VALS = [10, 50, 250]
@@ -123,7 +123,7 @@ def get_normalization_results(filepath, manager, min_entries_per_section):
                 len(section) for section in sections)
 
             # ratio: positions -> positions'
-            ratio = float(format(count_normalized_flight_positions / count_flight_positions, '.3f'))
+            ratio = round(count_normalized_flight_positions / count_flight_positions, 3)
 
             df = pd.DataFrame(
                 data={
@@ -241,7 +241,7 @@ def get_delimitation_results(
         plot_sections(
             filepath=os.path.join(filepath, 'imgs'),
             sections=wrapper_sections, 
-            number_sections=-1) # plot ALL sections
+            step=3) # plot 1 every 3 sections
 
 
 def get_intersection_results(filepath, manager):
