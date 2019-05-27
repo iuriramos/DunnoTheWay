@@ -22,14 +22,13 @@ from weather.models.convection_cell import ConvectionCell
 REPORTS_DIR = os.path.join(BASE_DIR, 'results', 'reports')
 
 AIRPORT_TRACKING_LIST = [
-      ('SBRJ', 'SBSP'),
-    # ('SBSP', 'SBRJ'),
-    # ('SBBR', 'SBSP'),
-    # ('SBSP', 'SBBR'),
-    # ('SBFZ', 'SBGR'),
-    # ('SBBR', 'SBFZ'),
-
      ('SBBR', 'SBRJ'),
+     ('SBSP', 'SBRJ'),
+     ('SBBR', 'SBSP'),
+     ('SBSP', 'SBBR'),
+     ('SBFZ', 'SBGR'),
+     ('SBBR', 'SBFZ'),
+     ('SBRJ', 'SBSP'),
 ]
 ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN']
 MIN_ENTRIES_PER_SECTION_VALS = [10, 50, 250]
@@ -134,8 +133,7 @@ def get_normalization_results(filepath, manager, min_entries_per_section):
                 }
             )
 
-            df.to_csv(path_or_buf=os.path.join(filepath, 'normalization.csv', index=False))
-            a = 1
+            df.to_csv(path_or_buf=os.path.join(filepath, 'normalization.csv'), index=False)
 
 
 def get_delimitation_results(
@@ -153,22 +151,34 @@ def get_delimitation_results(
             min_number_samples=min_number_samples, 
             max_distance_between_samples=max_distance_between_samples)
         
+        if not wrapper_sections:
+            continue
+
+        a_wrapper_section = wrapper_sections[0]
+        if a_wrapper_section.longitude_based:
+            section_points_column_name = 'Longitude'
+        else:
+            section_points_column_name = 'Latitude'
+        
         # (# positions') - (# positions'')
+        section_points = np.array([
+            wrapper_section.section_point for wrapper_section in wrapper_sections])
         count_normalized_flight_positions = np.array([
-            len(wrapper_section.section) for wrapper_section in wrapper_sections])
+            len(wrapper_section.section) for wrapper_section in wrapper_sections], dtype=int)
         count_clusterized_flight_positions = np.array([
-            len(wrapper_section) for wrapper_section in wrapper_sections])
+            len(wrapper_section) for wrapper_section in wrapper_sections], dtype=int)
 
         # diff: positions' -> positions''
         diff = count_normalized_flight_positions - count_clusterized_flight_positions
-
         df = pd.DataFrame(
             data={
+                section_points_column_name: section_points,   
                 'Posições de voo normalizadas': count_normalized_flight_positions, 
                 'Posições de voo pertencentes a clusters': count_clusterized_flight_positions,
                 'Diferença': diff,
             }
         )
+        df.index += 1 # index starts at 1
 
         # summary delimitation table
         (df.describe().transpose()
@@ -176,7 +186,14 @@ def get_delimitation_results(
         
         # full delimitation table
         df.loc['Total',:]= df.sum(axis=0)
-        df.to_csv(path_or_buf=os.path.join(filepath, 'delimitation.csv'))
+        df.to_csv(
+            path_or_buf=os.path.join(filepath, 'delimitation.csv'),
+            columns=[
+                section_points_column_name,
+                'Posições de voo normalizadas', 
+                'Posições de voo pertencentes a clusters',
+                'Diferença',
+            ])
 
         # labels Metrics
         labels = np.array([
@@ -198,16 +215,27 @@ def get_delimitation_results(
         # summary clusters table (chosen metrics)
         df = pd.DataFrame(
             data={
-                'Média': [float(format(mean, '.3f'))], 
-                'Mediana': [float(format(median, '.3f'))], 
+                'Média': [round(mean, 3)], 
+                'Mediana': [round(median, 3)], 
                 'Moda': [str(mode)], 
-                'Variação': [float(format(range_, '.3f'))], 
-                'IQR': [float(format(iqr, '.3f'))], 
-                'Variância': [float(format(variance, '.3f'))], 
-                'Desvio Padrão': [float(format(standard_deviation, '.3f'))], 
+                'Variação': [round(range_, 3)], 
+                'IQR': [round(iqr, 3)], 
+                'Variância': [round(variance, 3)], 
+                'Desvio Padrão': [round(standard_deviation, 3)], 
             }
         )
-        df.to_csv(path_or_buf=os.path.join(filepath, 'clusters_summary_2.csv'))
+        df.to_csv(
+            path_or_buf=os.path.join(filepath, 'clusters_summary_2.csv'),
+            index=False,
+            columns=[
+                'Média', 
+                'Mediana', 
+                'Moda', 
+                'Variação', 
+                'IQR', 
+                'Variância', 
+                'Desvio Padrão',
+            ])
 
         # PLOT sections 
         plot_sections(
@@ -255,6 +283,8 @@ def get_intersection_results(filepath, manager):
                 'Timestamp': timestamps, 
             }
         )
+        df.index += 1 # index starts from 1
+
         (df.sort_values(by=['Impacto'], ascending=False)
             .to_csv(path_or_buf=os.path.join(filepath, 'intersection.csv')))
 
