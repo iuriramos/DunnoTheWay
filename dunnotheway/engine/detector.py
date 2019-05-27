@@ -52,6 +52,9 @@ def search_intersections_convection_cells(
             intersections = _check_multiple_intersections(
                 departure_airport, destination_airport,  
                 convection_cells, algorithm_name, **kwargs)
+            # workaround - set airports
+            manager.set_default_airports(
+                departure_airport, destination_airport) 
             # record results
             for intersection in intersections:
                 manager.set_intersection(intersection)

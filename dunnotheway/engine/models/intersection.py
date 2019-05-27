@@ -37,10 +37,14 @@ class IntersectionManager:
     def items(self):
         yield from self.airports_to_intersections.items()
 
+    def set_default_airports(self, departure_airport, destination_airport):
+        key = departure_airport, destination_airport
+        if key not in self.airports_to_intersections:
+            self.airports_to_intersections[key] = list()
+
     def set_intersection(self, intersection):
         key = intersection.departure_airport, intersection.destination_airport
         self.airports_to_intersections[key].append(intersection)
-
 
     def get_intersections(self, departure_airport, destination_airport):
         return self.airports_to_intersections[
