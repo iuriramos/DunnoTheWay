@@ -22,7 +22,8 @@ class DBSCAN:
         self.classifier = _DBSCAN(
             eps=eps, 
             min_samples=min_samples, 
-            metric=distance_three_dimensions_coordinates)
+            metric=distance_three_dimensions_coordinates,
+            n_jobs=-2)
         # IMPORTANT! run classifier first
         self.run_classifier() 
 
