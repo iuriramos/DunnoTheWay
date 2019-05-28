@@ -13,8 +13,8 @@ def normalized_flight_locations_from_airports(
         normalized_flight_location
         for flight_plan in (FlightPlan.
             flight_plans_from_airports(session, departure_airport, destination_airport))
-        for normalized_flight_location in (
-            normalized_flight_locations_from_flight_plan(flight_plan))]
+            for normalized_flight_location in (
+                normalized_flight_locations_from_flight_plan(flight_plan))]
 
     # sort flight locations
     longitude_based = Airport.should_be_longitude_based(
@@ -32,13 +32,15 @@ def normalized_flight_locations_from_airports(
 def normalized_flight_locations_from_flight_plan(flight_plan):
     '''Return flight locations of flight plan'''
     return [normalized_flight_location 
-        for flight in flight_plan.flights 
-        for normalized_flight_location in 
-            normalized_flight_locations(flight.flight_locations)]
+            for flight in flight_plan.flights 
+                for normalized_flight_location in 
+                    normalized_flight_locations(flight.flight_locations)]
 
 
-def normalized_flight_locations(flight_locations, 
-    partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES):
+def normalized_flight_locations(
+    flight_locations, 
+    partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
+):
     '''Normalize flight locatins FROM SPECIFIC FLIGHT'''
     if not flight_locations:
         return flight_locations
@@ -151,9 +153,9 @@ def _normalize_flight_location(
     )   
 
     return FlightLocation(
-        timestamp, 
-        longitude, 
-        latitude, 
-        speed, 
-        altitude, 
+        timestamp=timestamp, 
+        longitude=longitude, 
+        latitude=latitude, 
+        altitude=altitude, 
+        speed=speed, 
         flight=prev_location.flight)
