@@ -1,11 +1,12 @@
 from collections import defaultdict, namedtuple
 
 import hdbscan
+import numpy as np
 
-from common.utils import distance_three_dimensions_coordinates
+from common.utils import (distance_three_dimensions_coordinates,
+                          get_cartesian_coordinates, get_spherical_coordinates)
 from engine.models.section import Section
-from engine.settings import (MIN_NUMBER_SAMPLES,
-                             NUMBER_ENTRIES_PER_SECTION)
+from engine.settings import MIN_NUMBER_SAMPLES, NUMBER_ENTRIES_PER_SECTION
 
 
 class HDBSCAN:
@@ -14,11 +15,14 @@ class HDBSCAN:
     def __init__(self, section, **kwargs):
         min_number_samples = kwargs.get(
             'min_number_samples', MIN_NUMBER_SAMPLES)
+        metric = kwargs.get(
+            'distance_measure', distance_three_dimensions_coordinates)
+        
         self.section = section
         self._label_to_flight_locations = defaultdict(list)
         self.classifier = hdbscan.HDBSCAN(
             min_samples=min_number_samples,
-            metric=distance_three_dimensions_coordinates)
+            metric=metric)
         # IMPORTANT! run classifier first
         self.run_classifier() 
 
@@ -69,3 +73,21 @@ class HDBSCAN:
     @property
     def labels(self):
         return self.classifier.labels_
+
+    def gen_clusters(self):
+        for label, flight_locations in self._label_to_flight_locations.items():
+            if label != -1: # unclassified flight_locations
+                yield label, self._find_cluster_from_light_locations(flight_locations)
+
+    def _find_cluster_from_light_locations(self, flight_locations):
+        arr_xyz = np.array([
+            get_cartesian_coordinates(
+                flight_location.coordinates) 
+            for flight_location in flight_locations])
+        length = arr_xyz.shape[0]
+        sum_x, sum_y, sum_z = (
+            np.sum(arr_xyz[:, 0]), 
+            np.sum(arr_xyz[:, 1]), 
+            np.sum(arr_xyz[:, 2]))
+        coordinate_xyz = sum_x/length, sum_y/length, sum_z/length
+        return get_spherical_coordinates(coordinate_xyz)
