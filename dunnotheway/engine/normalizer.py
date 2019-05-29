@@ -6,7 +6,7 @@ from common.utils import from_datetime_to_timestamp, from_timestamp_to_datetime
 from flight.opensky.settings import FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
 
 
-def normalized_flight_locations_from_airports(
+def normalize_from_airports(
     session, departure_airport, destination_airport):
     '''Return SORTED normalized flight locations from departure airport to destination airport'''
     normalized_flight_locations = [
@@ -14,7 +14,7 @@ def normalized_flight_locations_from_airports(
         for flight_plan in (FlightPlan.
             flight_plans_from_airports(session, departure_airport, destination_airport))
             for normalized_flight_location in (
-                normalized_flight_locations_from_flight_plan(flight_plan))]
+                normalize_from_flight_plan(flight_plan))]
 
     # sort flight locations
     longitude_based = Airport.should_be_longitude_based(
@@ -29,15 +29,15 @@ def normalized_flight_locations_from_airports(
     return normalized_flight_locations
 
 
-def normalized_flight_locations_from_flight_plan(flight_plan):
+def normalize_from_flight_plan(flight_plan):
     '''Return flight locations of flight plan'''
     return [normalized_flight_location 
             for flight in flight_plan.flights 
                 for normalized_flight_location in 
-                    normalized_flight_locations(flight.flight_locations)]
+                    normalize_from_flight_locations(flight.flight_locations)]
 
 
-def normalized_flight_locations(
+def normalize_from_flight_locations(
     flight_locations, 
     partition_interval=FLIGHT_PATH_PARTITION_INTERVAL_IN_DEGREES
 ):
@@ -51,11 +51,11 @@ def normalized_flight_locations(
     section_points = Airport._section_points_from_airports(
         flight_plan.departure_airport, flight_plan.destination_airport, 
         partition_interval)
-    return _normalized_flight_locations_from_section_points(
+    return _normalize_from_section_points(
         flight_locations, section_points)
 
 
-def _normalized_flight_locations_from_section_points(
+def _normalize_from_section_points(
     flight_locations, section_points):
     normalized_flight_locations = []
     fl = flight_locations[0]
