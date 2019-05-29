@@ -49,14 +49,14 @@ def distance_two_dimensions_coordinates(this_coordinate, that_coordinate):
 def distance_three_dimensions_coordinates(this_coordinate, that_coordinate):
     '''Measure distance in meters between two 3-d points (latitude, longitude, altitude).
     For variables naming refer to: https://www.movable-type.co.uk/scripts/latlong.html'''
-    this_rect_coordinate = get_rect_coordinates(this_coordinate)
-    that_rect_coordinate = get_rect_coordinates(that_coordinate)
+    this_rect_coordinate = get_cartesian_coordinates(this_coordinate)
+    that_rect_coordinate = get_cartesian_coordinates(that_coordinate)
     distance = np.linalg.norm(
         np.array(this_rect_coordinate)-np.array(that_rect_coordinate))
     return distance
 
-def get_rect_coordinates(coordinate):
-    '''Convert polar coordinates to rectagular'''
+def get_cartesian_coordinates(coordinate):
+    '''Convert spherical coordinates to cartesian coordinates'''
     lat, lon, alt = coordinate
     lat, lon = math.radians(lat), math.radians(lon)
     alt += RADIUS_EARTH
@@ -64,6 +64,15 @@ def get_rect_coordinates(coordinate):
     y = alt * math.cos(lon) * math.cos(lat)
     z = alt * math.sin(lat)
     return x, y, z
+
+def get_spherical_coordinates(coordinate):
+    '''Convert cartesian coordinates to spherical coordinates'''
+    x, y, z = coordinate
+    alt = np.linalg.norm([x, y, z])
+    lat = math.acos(z/alt)
+    lon = math.atan2(y, x)
+    alt -= RADIUS_EARTH
+    return lat, lon, alt
 
 def from_datetime_to_timestamp(dt):
     '''Convert datetime object in timestamp'''
