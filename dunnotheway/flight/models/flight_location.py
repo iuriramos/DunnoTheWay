@@ -34,6 +34,11 @@ class FlightLocation(Base):
             altitude=self.altitude,
             flight=repr(self.flight))
 
+    def __iter__(self):
+        yield float(self.latitude)
+        yield float(self.longitude)
+        yield float(self.altitude)
+
     @staticmethod
     def construct_flight_location_from_state_and_flight(state, flight):
         '''Return flight location from state-vector and flight object'''
@@ -49,9 +54,8 @@ class FlightLocation(Base):
     @property
     def coordinates(self):
         '''Transform flight location into raw tuple (latitude, longitude, altitude)'''
-        return (float(self.latitude), float(self.longitude), float(self.altitude)) 
+        return tuple(self)
 
     @staticmethod
     def check_equal_flight_locations(this, that):
-        return (this and that and 
-            (this.longitude, this.latitude) == (that.longitude, that.latitude))
+        return (this and that and tuple(this) == tuple(that))
