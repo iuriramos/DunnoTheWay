@@ -96,6 +96,7 @@ class HDBSCAN:
     def labels(self):
         return self.classifier.labels_
 
+    @property
     def clusters(self):
         clusters = []
         for label, flight_locations in self._label_to_flight_locations.items():

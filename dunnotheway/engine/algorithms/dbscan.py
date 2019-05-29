@@ -27,8 +27,7 @@ class DBSCAN:
         self.classifier = _DBSCAN(
             min_samples=min_samples, 
             eps=eps, 
-            metric=metric,
-            n_jobs=-2)
+            metric=metric)
         # IMPORTANT! run classifier first
         self.run_classifier() 
 
@@ -100,11 +99,12 @@ class DBSCAN:
     def labels(self):
         return self.classifier.labels_
 
+    @property
     def clusters(self):
         clusters = []
         for label, flight_locations in self._label_to_flight_locations.items():
             if label != -1 and flight_locations: # unclassified flight_locations
-                clusters += self._find_cluster_from_light_locations(flight_locations),
+                clusters += [self._find_cluster_from_light_locations(flight_locations)]
         return sorted(clusters)
 
     def _find_cluster_from_light_locations(self, flight_locations):
