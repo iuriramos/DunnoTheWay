@@ -68,15 +68,18 @@ class HDBSCAN:
         
         if key not in HDBSCAN.cache:
             HDBSCAN.cache[key] = [HDBSCAN(section, min_number_samples, metric) 
-            for section in Section.sections_from_airports(
-                departure_airport, destination_airport, **kwargs)]
+                for section in Section.sections_from_airports(
+                    departure_airport, destination_airport, **kwargs)]
         return HDBSCAN.cache[key]
 
     def run_classifier(self):
         train_set = [
             flight_location.coordinates
             for flight_location in self.flight_locations]
-        self.classifier.fit(train_set)
+        if len(train_set) > 1: # have to have at least two samples
+            self.classifier.fit(train_set)
+        else:
+            self.classifier.labels_ = np.array([-1])
         self._build_label_to_flight_locations()
 
     def _build_label_to_flight_locations(self):
