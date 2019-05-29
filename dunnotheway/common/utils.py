@@ -72,6 +72,9 @@ def get_spherical_coordinates(coordinate):
     lat = math.acos(z/alt)
     lon = math.atan2(y, x)
     alt -= RADIUS_EARTH
+    lat, lon = math.degrees(lat), math.degrees(lon)
+    lat = lat if lat < 90 else 90-lat # WTF?!!!!
+    lon = lon if lon < 90 else 90-lon # WTF?!!!!
     return lat, lon, alt
 
 def from_datetime_to_timestamp(dt):
