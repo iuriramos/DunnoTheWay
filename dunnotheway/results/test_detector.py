@@ -1,95 +1,131 @@
 import sys
 sys.path.append('/home/iuri/workspace/dunnotheway/dunnotheway')
 
-import os
 import functools
 import operator
+import os
+
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-from common.settings import BASE_DIR
 from common.db import open_database_session
-from engine.detector import search_intersections_convection_cells, ALGORITHM_MAP
-from engine.plot import plot_sections
+from common.settings import BASE_DIR
+from common.utils import (distance_three_dimensions_coordinates,
+                          distance_two_dimensions_coordinates)
+from engine.detector import (ALGORITHM_MAP,
+                             search_intersections_convection_cells)
 from engine.models.section import Section
+from engine.plot import plot_sections
 from flight.models.flight import Flight
-from flight.models.flight_plan import FlightPlan
 from flight.models.flight_location import FlightLocation
+from flight.models.flight_plan import FlightPlan
 from weather.models.convection_cell import ConvectionCell
+
+
+
 
 
 REPORTS_DIR = os.path.join(BASE_DIR, 'results', 'reports')
 
 AIRPORT_TRACKING_LIST = [
      ('SBRJ', 'SBSP'),
-     ('SBBR', 'SBRJ'),
      ('SBSP', 'SBRJ'),
      ('SBBR', 'SBSP'),
      ('SBSP', 'SBBR'),
      ('SBFZ', 'SBGR'),
      ('SBBR', 'SBFZ'),
 ]
-ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN']
-MIN_ENTRIES_PER_SECTION_VALS = [10, 50, 250]
+ALGORITHM_NAMES = ['HDBSCAN', 'DBSCAN', ]
+DISTANCE_MEASURES = [
+    distance_two_dimensions_coordinates, 
+    distance_three_dimensions_coordinates,
+]
+MIN_ENTRIES_PER_SECTION_VALS = [0]
 MIN_NUMBER_SAMPLES_VALS = [5, 25, 125]
 MAX_DISTANCE_BETWEEN_SAMPLES_VALS = [1000, 100, 10]
 
 
 def main():
     for departure_destination_airports in AIRPORT_TRACKING_LIST:
-        base_filepath = os.path.join(REPORTS_DIR, str(departure_destination_airports))
 
         for (algorithm_name, 
+            distance_measure,
             min_entries_per_section, 
             min_number_samples, 
             max_distance_between_samples) in gen_params():
 
-            filepath = build_filepath_from_params(
-                base_filepath,
-                algorithm_name, 
+            run(algorithm_name,
+                distance_measure, 
                 min_entries_per_section, 
                 min_number_samples, 
-                max_distance_between_samples)
-            if not os.path.exists(filepath):
-                os.makedirs(filepath)
-            
-            manager = search_intersections_convection_cells(
-                airport_tracking_list=[departure_destination_airports],
-                algorithm_name=algorithm_name,
-                min_entries_per_section=min_entries_per_section, 
-                min_number_samples=min_number_samples, 
-                max_distance_between_samples=max_distance_between_samples)
+                max_distance_between_samples, 
+                departure_destination_airports)
 
-            # normalization results
-            get_normalization_results(filepath, manager, min_entries_per_section)
+def run(
+    algorithm_name,
+    distance_measure, 
+    min_entries_per_section, 
+    min_number_samples, 
+    max_distance_between_samples, 
+    departure_destination_airports
+):
+    base_filepath = os.path.join(
+        REPORTS_DIR, 
+        str(departure_destination_airports))
+    filepath = build_filepath_from_params(
+        base_filepath,
+        algorithm_name, 
+        distance_measure,
+        min_entries_per_section, 
+        min_number_samples, 
+        max_distance_between_samples)
+    
+    # Run in case folder does not exist 
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
 
-            # delimitation results
-            get_delimitation_results(
-                filepath,
-                manager, 
-                algorithm_name=algorithm_name,
-                min_entries_per_section=min_entries_per_section, 
-                min_number_samples=min_number_samples, 
-                max_distance_between_samples=max_distance_between_samples)
+        manager = search_intersections_convection_cells(
+            airport_tracking_list=[departure_destination_airports],
+            algorithm_name=algorithm_name,
+            distance_measure=distance_measure,
+            min_entries_per_section=min_entries_per_section, 
+            min_number_samples=min_number_samples, 
+            max_distance_between_samples=max_distance_between_samples)
 
-            # intersection results
-            get_intersection_results(filepath, manager)
+        # normalization results
+        get_normalization_results(
+            filepath, manager, min_entries_per_section)
+
+        # delimitation results
+        get_delimitation_results(
+            filepath,
+            manager, 
+            algorithm_name=algorithm_name,
+            distance_measure=distance_measure,
+            min_entries_per_section=min_entries_per_section, 
+            min_number_samples=min_number_samples, 
+            max_distance_between_samples=max_distance_between_samples)
+
+        # intersection results
+        get_intersection_results(filepath, manager)
 
 
 def gen_params():
     for algorithm_name in ALGORITHM_NAMES:
-        for min_entries_per_section in MIN_ENTRIES_PER_SECTION_VALS:
-            for min_number_samples in MIN_NUMBER_SAMPLES_VALS:
-                if min_number_samples > min_entries_per_section:
-                    continue # prunning
-                for max_distance_between_samples in MAX_DISTANCE_BETWEEN_SAMPLES_VALS:
-                    yield algorithm_name, min_entries_per_section, min_number_samples, max_distance_between_samples
+        for distance_measure in DISTANCE_MEASURES:
+            for min_entries_per_section in MIN_ENTRIES_PER_SECTION_VALS:
+                for min_number_samples in MIN_NUMBER_SAMPLES_VALS:
+                    for max_distance_between_samples in MAX_DISTANCE_BETWEEN_SAMPLES_VALS:
+                        yield algorithm_name, distance_measure, min_entries_per_section, min_number_samples, max_distance_between_samples
+                        if algorithm_name == 'HDBSCAN':
+                            break # skip the inner loop
 
 
 def build_filepath_from_params(
     filepath,
     algorithm_name, 
+    distance_measure,
     min_entries_per_section, 
     min_number_samples, 
     max_distance_between_samples
@@ -97,6 +133,7 @@ def build_filepath_from_params(
     return os.path.join(
         filepath, 
         algorithm_name,
+        distance_measure.__name__,
         'min_entries_per_section_' + str(min_entries_per_section) +
         '_min_number_samples_' + str(min_number_samples) +
         '_max_distance_between_samples_' + str(max_distance_between_samples),
@@ -138,8 +175,13 @@ def get_normalization_results(filepath, manager, min_entries_per_section):
 
 def get_delimitation_results(
     filepath,
-    manager, algorithm_name, min_entries_per_section, 
-    min_number_samples, max_distance_between_samples):
+    manager, 
+    algorithm_name, 
+    distance_measure, 
+    min_entries_per_section, 
+    min_number_samples, 
+    max_distance_between_samples
+):
     algorithm = ALGORITHM_MAP[algorithm_name]
 
     for departure_airport, destination_airport in manager:
@@ -147,7 +189,8 @@ def get_delimitation_results(
         wrapper_sections = algorithm.sections_from_airports(
             departure_airport, 
             destination_airport, 
-            min_entries_per_section=min_entries_per_section, 
+            min_entries_per_section=min_entries_per_section,
+            distance_measure=distance_measure, 
             min_number_samples=min_number_samples, 
             max_distance_between_samples=max_distance_between_samples)
         
