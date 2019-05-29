@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 # global variable
 RADIUS_EARTH = 6371e3
 
+
 def get_env_variable(var_name):
     '''Get the environment variable or return exception.'''
     try:
@@ -30,9 +31,10 @@ def create_db_engine(user, password, host, port, db):
 
 def distance_two_dimensions_coordinates(this_coordinate, that_coordinate):
     '''Measure distance in meters between two 2-d points (latitude, longitude).
+    Also measure distance in meters between two 3-d points (latitude, longitude, altitude).
     For variables naming refer to: https://www.movable-type.co.uk/scripts/latlong.html'''
-    lat1, lon1 = this_coordinate
-    lat2, lon2 = that_coordinate
+    lat1, lon1, *_rest = this_coordinate
+    lat2, lon2, *_rest = that_coordinate
     dlat = math.radians(lat2-lat1)
     dlon = math.radians(lon2-lon1)
     lat1, lat2 = math.radians(lat1), math.radians(lat2)
