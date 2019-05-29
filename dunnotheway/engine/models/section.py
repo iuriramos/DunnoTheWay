@@ -49,7 +49,7 @@ class Section:
 
         if key not in Section.cache:
             with open_database_session() as session:
-                flight_locations = normalizer.normalized_flight_locations_from_airports(
+                flight_locations = normalizer.normalize_from_airports(
                     session, departure_airport, destination_airport)
             
             # section should be longitude based
