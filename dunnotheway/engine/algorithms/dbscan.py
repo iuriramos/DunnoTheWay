@@ -14,19 +14,19 @@ from engine.settings import (MAXIMUM_DISTANCE_BETWEEN_SAMPLES,
 class DBSCAN:
     '''Section wrapper class implementing DBSCAN to delimit the points in the airways'''
 
-    def __init__(self, section, **kwargs):
-        eps = kwargs.get(
-            'max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
-        min_samples = kwargs.get(
-            'min_number_samples', MIN_NUMBER_SAMPLES)
-        metric = kwargs.get(
-            'distance_measure', distance_three_dimensions_coordinates)
-        
+    # cache dbscan sections list based on 
+    # (
+    #   departure_airport, destination_airport, min_entries_per_section, 
+    #   min_number_samples, max_distance_between_samples, distance_measure
+    # )
+    cache = {}
+
+    def __init__(self, section, min_samples, eps, metric):
         self.section = section
         self._label_to_flight_locations = defaultdict(list)
         self.classifier = _DBSCAN(
-            eps=eps, 
             min_samples=min_samples, 
+            eps=eps, 
             metric=metric,
             n_jobs=-2)
         # IMPORTANT! run classifier first
@@ -55,9 +55,29 @@ class DBSCAN:
     def sections_from_airports(
         departure_airport, destination_airport, **kwargs):
         '''Return sections from flight locations'''
-        return [DBSCAN(section, **kwargs) 
-            for section in Section.sections_from_airports(
-                departure_airport, destination_airport, **kwargs)]
+        min_entries_per_section = kwargs.get(
+            'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
+        min_samples = kwargs.get(
+            'min_number_samples', MIN_NUMBER_SAMPLES)
+        eps = kwargs.get(
+            'max_distance_between_samples', MAXIMUM_DISTANCE_BETWEEN_SAMPLES)
+        metric = kwargs.get(
+            'distance_measure', distance_three_dimensions_coordinates)
+
+        key = (
+            departure_airport.icao_code, 
+            destination_airport.icao_code, 
+            min_entries_per_section,
+            min_samples,
+            eps,
+            metric.__name__,
+        )
+        
+        if key not in DBSCAN.cache:
+            DBSCAN.cache[key] = [DBSCAN(section, min_samples, eps, metric) 
+                for section in Section.sections_from_airports(
+                    departure_airport, destination_airport, **kwargs)]
+        return DBSCAN.cache[key]
 
     def run_classifier(self):
         train_set = [

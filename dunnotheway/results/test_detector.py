@@ -36,7 +36,7 @@ AIRPORT_TRACKING_LIST = [
      ('SBFZ', 'SBGR'),
      ('SBBR', 'SBFZ'),
 ]
-ALGORITHM_NAMES = ['HDBSCAN', 'DBSCAN', ]
+ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN', ]
 DISTANCE_MEASURES = [
     distance_two_dimensions_coordinates, 
     distance_three_dimensions_coordinates,

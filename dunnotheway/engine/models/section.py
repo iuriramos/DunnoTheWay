@@ -17,7 +17,8 @@ class Section:
     `label` attributes the cluster group for a specific flight location.
     '''
 
-    # cache results as (departure, destination, min_samples) => sections
+    # cache sections list based on 
+    # (departure_airport, destination_airport, min_entries_per_section)
     cache = {} 
 
     def __init__(self, section_point, longitude_based, flight_locations):
@@ -39,10 +40,12 @@ class Section:
         '''Return sections from flight locations'''
         min_entries_per_section = kwargs.get(
             'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
+            
         key = (
-            hash(departure_airport), 
-            hash(destination_airport), 
-            hash(min_entries_per_section))
+            departure_airport.icao_code, 
+            destination_airport.icao_code, 
+            min_entries_per_section,
+        )
 
         if key not in Section.cache:
             with open_database_session() as session:

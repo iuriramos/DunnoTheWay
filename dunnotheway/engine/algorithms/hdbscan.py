@@ -12,12 +12,14 @@ from engine.settings import MIN_NUMBER_SAMPLES, NUMBER_ENTRIES_PER_SECTION
 class HDBSCAN:
     '''Section wrapper class implementing HDBSCAN to delimit the points in the airways'''
 
-    def __init__(self, section, **kwargs):
-        min_number_samples = kwargs.get(
-            'min_number_samples', MIN_NUMBER_SAMPLES)
-        metric = kwargs.get(
-            'distance_measure', distance_three_dimensions_coordinates)
-        
+    # cache dbscan sections list based on 
+    # (
+    #   departure_airport, destination_airport,  
+    #   min_entries_per_section, min_number_samples, distance_measure
+    # )
+    cache = {}
+
+    def __init__(self, section, min_number_samples, metric):
         self.section = section
         self._label_to_flight_locations = defaultdict(list)
         self.classifier = hdbscan.HDBSCAN(
@@ -48,10 +50,27 @@ class HDBSCAN:
     @staticmethod
     def sections_from_airports(
         departure_airport, destination_airport, **kwargs):
-        '''Return sections from flight locations'''
-        return [HDBSCAN(section, **kwargs) 
+        '''Return sections from flight locations'''        
+        min_entries_per_section = kwargs.get(
+            'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
+        min_number_samples = kwargs.get(
+            'min_number_samples', MIN_NUMBER_SAMPLES)
+        metric = kwargs.get(
+            'distance_measure', distance_three_dimensions_coordinates)
+        
+        key = (
+            departure_airport.icao_code, 
+            destination_airport.icao_code, 
+            min_entries_per_section,
+            min_number_samples,
+            metric.__name__,
+        )
+        
+        if key not in HDBSCAN.cache:
+            HDBSCAN.cache[key] = [HDBSCAN(section, min_number_samples, metric) 
             for section in Section.sections_from_airports(
                 departure_airport, destination_airport, **kwargs)]
+        return HDBSCAN.cache[key]
 
     def run_classifier(self):
         train_set = [
