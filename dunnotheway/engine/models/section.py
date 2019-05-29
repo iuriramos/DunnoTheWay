@@ -17,6 +17,9 @@ class Section:
     `label` attributes the cluster group for a specific flight location.
     '''
 
+    # cache results as (departure, destination, min_samples) => sections
+    cache = {} 
+
     def __init__(self, section_point, longitude_based, flight_locations):
         self.section_point = section_point
         self.longitude_based = longitude_based
@@ -36,35 +39,43 @@ class Section:
         '''Return sections from flight locations'''
         min_entries_per_section = kwargs.get(
             'min_entries_per_section', NUMBER_ENTRIES_PER_SECTION)
-        
-        with open_database_session() as session:
-            flight_locations = normalizer.normalized_flight_locations_from_airports(
-                session, departure_airport, destination_airport)
-        
-        # section should be longitude based
-        longitude_based = Airport.should_be_longitude_based(
-            departure_airport, destination_airport)
+        key = (
+            hash(departure_airport), 
+            hash(destination_airport), 
+            hash(min_entries_per_section))
 
-        sections = []
-        if not flight_locations:
-            return sections
-        
-        prev_flight_location = flight_locations[0]
-        section_flight_locations = [prev_flight_location]
+        if key not in Section.cache:
+            with open_database_session() as session:
+                flight_locations = normalizer.normalized_flight_locations_from_airports(
+                    session, departure_airport, destination_airport)
+            
+            # section should be longitude based
+            longitude_based = Airport.should_be_longitude_based(
+                departure_airport, destination_airport)
 
-        for curr_flight_location in flight_locations[1:]:
-            if Section._flight_locations_are_part_of_the_same_section(
-                prev_flight_location, curr_flight_location, longitude_based):
-                section_flight_locations.append(curr_flight_location)
-            else:
-                if len(section_flight_locations) >= min_entries_per_section:
-                    section = Section.from_flight_locations(section_flight_locations)
-                    sections.append(section)
-                section_flight_locations = [curr_flight_location]
-            prev_flight_location = curr_flight_location
+            sections = []
+            if not flight_locations:
+                return sections
+            
+            prev_flight_location = flight_locations[0]
+            section_flight_locations = [prev_flight_location]
 
-        return sections
-    
+            for curr_flight_location in flight_locations[1:]:
+                if Section._flight_locations_are_part_of_the_same_section(
+                    prev_flight_location, curr_flight_location, longitude_based):
+                    section_flight_locations.append(curr_flight_location)
+                else:
+                    if len(section_flight_locations) >= min_entries_per_section:
+                        section = Section.from_flight_locations(section_flight_locations)
+                        sections.append(section)
+                    section_flight_locations = [curr_flight_location]
+                prev_flight_location = curr_flight_location
+
+            Section.cache[key] = sections
+
+        # return cached results
+        return Section.cache[key]
+
     @staticmethod
     def from_flight_locations(flight_locations):
         '''Return a SINGLE section from flight locations'''
