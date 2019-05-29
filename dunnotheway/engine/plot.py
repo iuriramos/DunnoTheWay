@@ -13,8 +13,8 @@ from engine.models.section import Section
 from flight.models.airport import Airport
 
 
-SIZES = [200, 300, 400, 500, 600]
-COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'black']
+COLORS = ['red', 'blue', 'green', 'purple', 'black']
+ALPHAS = [.8, .6, .4, 1., 1.]
 
 
 def plot_sections(filepath, sections, step=1):
@@ -63,3 +63,91 @@ def plot_section(filepath, section):
     
     filepath = os.path.join(filepath, filename + '.pdf')
     plt.savefig(filepath)
+
+
+def plot_from_flight_locations(filepath, flight_locations, **kwargs):
+    '''Plot flight locations (longitude, latitude) path from departure airport to destination airport'''
+    plot_from_multiple_flight_locations(filepath, [flight_locations], **kwargs)
+
+
+def plot_from_multiple_flight_locations(filepath, multiple_flight_locations, **kwargs):
+    _, axis = plt.subplots()
+    axis.set_title('Longitudes x Latitudes')
+    axis.set_xlabel('Longitude')
+    axis.set_ylabel('Latitude')
+
+    for i, flight_locations in enumerate(multiple_flight_locations):
+        lons = [float(lon) for lat, lon, alt in flight_locations]
+        lats = [float(lat) for lat, lon, alt in flight_locations]
+        axis.scatter(
+            lons, lats, c=COLORS[i], alpha=ALPHAS[i])
+
+    departure_airport, destination_airport = (
+        kwargs.get('departure_airport', None), kwargs.get('destination_airport', None))
+
+    if departure_airport and destination_airport:
+        axis.scatter(
+            [float(departure_airport.longitude)], [float(departure_airport.latitude)], 
+            marker='>', s=100, c=COLORS[-1], alpha=ALPHAS[-1])
+        axis.scatter(
+            [float(destination_airport.longitude)], [float(destination_airport.latitude)], 
+            marker='<', s=100, c=COLORS[-1], alpha=ALPHAS[-1])
+
+    airways_locations = kwargs.get('airways_locations', None)
+    if airways_locations:
+        lons = [float(lon) for lat, lon, alt in airways_locations]
+        lats = [float(lat) for lat, lon, alt in airways_locations]
+        axis.scatter(
+            lons, lats, c=COLORS[-1], alpha=ALPHAS[-1])
+
+    # save flight paths figure
+    plt.savefig(filepath)
+
+def plot_flight_locations_params(filepath, flight_locations):
+    '''Plot flight locations parameters'''
+    plot_multiple_flight_locations_params(filepath, [flight_locations])
+
+def plot_multiple_flight_locations_params(filepath, multiple_flight_locations):
+    '''Plot flight locations parameters'''
+    _, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 14))
+    axis_altitude, axis_speed = axes
+    
+    axis_altitude.set_ylabel('Altitude')
+    axis_altitude.set_title('Altitudes (em metros)')
+    axis_altitude.get_xaxis().set_ticks([])
+    axis_speed.set_title('Velocidades (em km/h)')
+    axis_speed.set_ylabel('Velocidade')
+    axis_speed.get_xaxis().set_ticks([])
+
+    min_xlim_altitude, max_xlim_altitude = datetime.max, datetime.min
+    min_xlim_speed, max_xlim_speed = datetime.max, datetime.min
+
+    for index, flight_locations in enumerate(multiple_flight_locations):
+        # plot flight location params
+        curr_min_xlim_altitude, curr_max_xlim_altitude = (
+            plot_flight_location_altitudes(flight_locations, axis_altitude, index=index))
+        min_xlim_altitude, max_xlim_altitude = (
+            min(min_xlim_altitude, curr_min_xlim_altitude), 
+            max(max_xlim_altitude, curr_max_xlim_altitude))
+        curr_min_xlim_speed, curr_max_xlim_speed = (
+            plot_flight_location_speeds(flight_locations, axis_speed, index=index))
+        min_xlim_speed, max_xlim_speed = (
+            min(min_xlim_speed, curr_min_xlim_speed), 
+            max(max_xlim_speed, curr_max_xlim_speed))
+        
+    axis_altitude.set_xlim((min_xlim_altitude, max_xlim_altitude))
+    axis_speed.set_xlim((min_xlim_speed, max_xlim_speed))
+    
+    plt.savefig(filepath)
+
+def plot_flight_location_altitudes(flight_locations, axis, index=0):
+    timestamps = [flight_location.timestamp for flight_location in flight_locations]
+    altitudes = [float(flight_location.altitude) for flight_location in flight_locations]
+    axis.scatter(timestamps, altitudes, c=COLORS[index], alpha=ALPHAS[index])
+    return min(timestamps), max(timestamps)
+
+def plot_flight_location_speeds(flight_locations, axis, index=0):
+    timestamps = [flight_location.timestamp for flight_location in flight_locations]
+    speeds = [float(flight_location.speed) for flight_location in flight_locations]
+    axis.scatter(timestamps, speeds, c=COLORS[index], alpha=ALPHAS[index])
+    return min(timestamps), max(timestamps)
