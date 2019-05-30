@@ -150,4 +150,4 @@ def plot_flight_location_speeds(flight_locations, axis, index=0):
     timestamps = [flight_location.timestamp for flight_location in flight_locations]
     speeds = [float(flight_location.speed) for flight_location in flight_locations]
     axis.scatter(timestamps, speeds, c=COLORS[index], alpha=ALPHAS[index])
-    return min(timestamps), max(timestamps)
+    return min(timestamps, default=datetime.max), max(timestamps, default=datetime.min)
