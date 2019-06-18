@@ -1,0 +1,50 @@
+[flights]
+    *id {label:"INTEGER"}
+    created_date {label:"TIMESTAMP WITHOUT TIME ZONE"}
+    airplane_id {label:"INTEGER"}
+    flight_plan_id {label:"INTEGER"}
+[convection_cells]
+    *id {label:"INTEGER"}
+    latitude {label:"DOUBLE PRECISION"}
+    longitude {label:"DOUBLE PRECISION"}
+    radius {label:"DOUBLE PRECISION"}
+    timestamp {label:"TIMESTAMP WITHOUT TIME ZONE"}
+[flight_locations]
+    *id {label:"INTEGER"}
+    timestamp {label:"TIMESTAMP WITHOUT TIME ZONE"}
+    longitude {label:"NUMERIC"}
+    latitude {label:"NUMERIC"}
+    altitude {label:"NUMERIC"}
+    speed {label:"NUMERIC"}
+    flight_id {label:"INTEGER"}
+[airplanes]
+    *id {label:"INTEGER"}
+    icao_code {label:"VARCHAR(6)"}
+    airline_id {label:"INTEGER"}
+    manufacturer {label:"VARCHAR"}
+    model {label:"VARCHAR"}
+[airlines]
+    *id {label:"INTEGER"}
+    icao_code {label:"VARCHAR(3)"}
+    name {label:"VARCHAR"}
+    country {label:"VARCHAR"}
+[flight_plans]
+    *id {label:"INTEGER"}
+    callsign {label:"VARCHAR"}
+    departure_airport_id {label:"INTEGER"}
+    destination_airport_id {label:"INTEGER"}
+[airports]
+    *id {label:"INTEGER"}
+    icao_code {label:"VARCHAR(4)"}
+    iata_code {label:"VARCHAR(3)"}
+    name {label:"VARCHAR"}
+    latitude {label:"NUMERIC"}
+    longitude {label:"NUMERIC"}
+    altitude {label:"NUMERIC"}
+    country {label:"VARCHAR"}
+airplanes *--? flights
+flight_plans *--? flights
+flights *--? flight_locations
+airlines *--? airplanes
+airports *--? flight_plans
+airports *--? flight_plans
