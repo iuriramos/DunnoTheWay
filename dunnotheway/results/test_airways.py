@@ -47,7 +47,7 @@ AIRPORT_TRACKING_LIST = [
      ('SBBR', 'SBSP'),
      ('SBSP', 'SBBR'),
      ('SBFZ', 'SBGR'),
-     ('SBBR', 'SBFZ'),
+     ('SBGR', 'SBFZ'),
 ]
 ALGORITHM_NAMES = ['HDBSCAN', 'DBSCAN', ]
 DISTANCE_MEASURES = [
@@ -60,20 +60,116 @@ MAX_DISTANCE_BETWEEN_SAMPLES_VALS = [1000, 100, 10]
 
 
 def main():
-    for departure_destination_airports in AIRPORT_TRACKING_LIST:
 
+    for departure_destination_airports in AIRPORT_TRACKING_LIST:
+        
         for (algorithm_name, 
             distance_measure,
             min_entries_per_section, 
             min_number_samples, 
             max_distance_between_samples) in gen_params():
-
+            
             run(algorithm_name,
                 distance_measure, 
                 min_entries_per_section, 
                 min_number_samples, 
                 max_distance_between_samples, 
                 departure_destination_airports)
+
+    for (algorithm_name, 
+        distance_measure,
+        min_entries_per_section, 
+        min_number_samples, 
+        max_distance_between_samples) in gen_params():
+    
+        plot_params_scenario(
+            algorithm_name,
+            distance_measure, 
+            min_entries_per_section, 
+            min_number_samples, 
+            max_distance_between_samples,
+            airport_tracking_list=AIRPORT_TRACKING_LIST,
+        )
+
+def plot_params_scenario(
+    algorithm_name,
+    distance_measure, 
+    min_entries_per_section, 
+    min_number_samples, 
+    max_distance_between_samples, 
+    airport_tracking_list
+):
+    airways, cells, airports = [], set(), set()
+    
+    for departure_destination_airports in airport_tracking_list:
+        departure_airport, destination_airport = (
+            get_airports_from_icao_code(*departure_destination_airports))
+
+        base_filepath = os.path.join(
+            REPORTS_DIR, 
+            str(departure_destination_airports))
+
+        # build flepath airways 
+        filepath = build_filepath_from_params(
+            base_filepath,
+            algorithm_name, 
+            distance_measure,
+            min_entries_per_section, 
+            min_number_samples, 
+            max_distance_between_samples)
+        
+        # Run in case folder does not exist 
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+
+        airways_locations, _ = plot_airways(
+            filepath,
+            departure_airport, 
+            destination_airport,
+            algorithm_name, 
+            distance_measure, 
+            min_entries_per_section, 
+            min_number_samples, 
+            max_distance_between_samples
+        )
+        
+        cells_locations = get_convection_cells(
+            departure_airport, destination_airport)
+
+        airports.add(departure_airport) 
+        airports.add(destination_airport)
+        airways += airways_locations
+        cells |= cells_locations
+
+    base_filepath = os.path.join(
+        REPORTS_DIR, 'airways')
+        
+    # build flepath airways 
+    filepath = build_filepath_from_params(
+        base_filepath,
+        algorithm_name, 
+        distance_measure,
+        min_entries_per_section, 
+        min_number_samples, 
+        max_distance_between_samples)
+    
+    # Run in case folder does not exist 
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+        # plot
+        plot_from_multiple_flight_locations(
+            filepath, 
+            multiple_flight_locations=[cells, airways], 
+            airports=airports) 
+
+
+
+def get_convection_cells(departure_airport, destination_airport):
+    # convection cells within departure and destination airports
+    with open_database_session() as session:
+        return {cell for cell in ConvectionCell.all_convection_cells(session) 
+            if cell.is_convection_cells_between_airports(departure_airport, destination_airport)}
+
 
 def run(
     algorithm_name,
@@ -178,6 +274,10 @@ def plot_airways(
     min_number_samples, 
     max_distance_between_samples,
 ):
+    filepath_airways = os.path.join(filepath, 'airways.pdf')
+    # if os.path.exists(filepath_airways):
+    #     return None, None
+        
     algorithm = ALGORITHM_MAP[algorithm_name]
 
     wrapper_sections = algorithm.sections_from_airports(
@@ -192,7 +292,7 @@ def plot_airways(
         [wp.clusters for wp in wrapper_sections]))
 
     plot_from_flight_locations(
-        filepath=os.path.join(filepath, 'airways.pdf'), 
+        filepath=filepath_airways, 
         flight_locations=airways_locations,
         departure_airport=departure_airport,
         destination_airport=destination_airport,
@@ -278,4 +378,19 @@ def plot_most_descriptive_flight_paths(filepath, departure_airport, destination_
 
     
 if __name__ == "__main__":
-    main()
+    # # main()
+    # run(algorithm_name='DBSCAN',
+    #     distance_measure=distance_two_dimensions_coordinates, 
+    #     min_entries_per_section=0, 
+    #     min_number_samples=25, 
+    #     max_distance_between_samples=100, 
+    #     departure_destination_airports=('SBGR', 'SBFZ'))
+
+    plot_params_scenario(
+        algorithm_name='DBSCAN',
+        distance_measure=distance_two_dimensions_coordinates, 
+        min_entries_per_section=0, 
+        min_number_samples=25, 
+        max_distance_between_samples=100, 
+        airport_tracking_list=AIRPORT_TRACKING_LIST,
+    )

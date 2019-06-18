@@ -34,7 +34,7 @@ AIRPORT_TRACKING_LIST = [
      ('SBBR', 'SBSP'),
      ('SBSP', 'SBBR'),
      ('SBFZ', 'SBGR'),
-     ('SBBR', 'SBFZ'),
+     ('SBGR', 'SBFZ'),
 ]
 ALGORITHM_NAMES = ['DBSCAN', 'HDBSCAN', ]
 DISTANCE_MEASURES = [
@@ -68,7 +68,8 @@ def run(
     min_entries_per_section, 
     min_number_samples, 
     max_distance_between_samples, 
-    departure_destination_airports
+    departure_destination_airports,
+    force_run=False,
 ):
     base_filepath = os.path.join(
         REPORTS_DIR, 
@@ -82,8 +83,10 @@ def run(
         max_distance_between_samples)
     
     # Run in case folder does not exist 
-    if not os.path.exists(filepath):
-        os.makedirs(filepath)
+    if force_run or not os.path.exists(filepath):
+    
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
 
         manager = search_intersections_convection_cells(
             airport_tracking_list=[departure_destination_airports],
@@ -334,3 +337,12 @@ def get_intersection_results(filepath, manager):
 
 if __name__ == "__main__":
     main()
+    # run(
+    #     algorithm_name='DBSCAN',
+    #     distance_measure=distance_three_dimensions_coordinates, 
+    #     min_entries_per_section=0, 
+    #     min_number_samples=5, 
+    #     max_distance_between_samples=10, 
+    #     departure_destination_airports=('SBBR', 'SBSP'),
+    #     force_run=True,
+    # )

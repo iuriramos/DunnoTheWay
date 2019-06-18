@@ -77,14 +77,13 @@ def plot_from_multiple_flight_locations(filepath, multiple_flight_locations, **k
     axis.set_ylabel('Latitude')
 
     for i, flight_locations in enumerate(multiple_flight_locations):
-        lons = [float(lon) for lat, lon, alt in flight_locations]
-        lats = [float(lat) for lat, lon, alt in flight_locations]
+        lons = [float(lon) for lat, lon, _ in flight_locations]
+        lats = [float(lat) for lat, lon, _ in flight_locations]
         axis.scatter(
             lons, lats, c=COLORS[i], alpha=ALPHAS[i])
 
     departure_airport, destination_airport = (
         kwargs.get('departure_airport', None), kwargs.get('destination_airport', None))
-
     if departure_airport and destination_airport:
         axis.scatter(
             [float(departure_airport.longitude)], [float(departure_airport.latitude)], 
@@ -93,10 +92,16 @@ def plot_from_multiple_flight_locations(filepath, multiple_flight_locations, **k
             [float(destination_airport.longitude)], [float(destination_airport.latitude)], 
             marker='<', s=100, c=COLORS[-1], alpha=ALPHAS[-1])
 
+    airports = kwargs.get('airports', [])
+    axis.scatter(
+        [float(airport.longitude) for airport in airports], 
+        [float(airport.latitude) for airport in airports], 
+        marker='>', s=100, c=COLORS[-1], alpha=ALPHAS[-1])
+    
     airways_locations = kwargs.get('airways_locations', None)
     if airways_locations:
-        lons = [float(lon) for lat, lon, alt in airways_locations]
-        lats = [float(lat) for lat, lon, alt in airways_locations]
+        lons = [float(lon) for lat, lon, _ in airways_locations]
+        lats = [float(lat) for lat, lon, _ in airways_locations]
         axis.scatter(
             lons, lats, c=COLORS[-1], alpha=ALPHAS[-1])
 
