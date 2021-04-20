@@ -25,7 +25,7 @@ numpy==1.14.5
 packaging==17.1
 pluggy==0.6.0
 psycopg2==2.7.4
-py==1.5.4
+py==1.10.0
 Pygments==2.2.0
 pylint==1.9.1
 pyparsing==2.2.0
